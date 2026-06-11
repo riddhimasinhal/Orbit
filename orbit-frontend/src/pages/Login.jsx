@@ -1,0 +1,133 @@
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import axios from "axios"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card"
+import {
+    Field,
+    FieldDescription,
+    FieldGroup,
+    FieldLabel,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { useNavigate } from "react-router-dom"
+import { useState } from "react"
+
+export function LoginForm({
+    className,
+    ...props
+}) {
+    const [formData, setFormData] = useState({
+        email: "",
+        password: "",
+    })
+    const navigate = useNavigate();
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await axios.post(
+                "http://localhost:5000/api/auth/login",
+                formData
+
+            );
+            console.log("Login Response:", response.data);
+            console.log(response.data);
+            localStorage.setItem(
+                "token",
+                response.data.token
+            );
+            console.log(
+                "Stored Token:",
+                localStorage.getItem("token")
+            );
+
+
+            const role = response.data.role; // later comes from backend
+            const onBoardingCompleted =
+                response.data.onBoardingCompleted;
+            if (!onBoardingCompleted) {
+                if (role === "creator") {
+                    navigate("/creator-onboarding");
+                } else {
+                    navigate("/brand-onboarding");
+                }
+            }
+            else {
+                navigate("/dashboard");
+            }
+
+        } catch (error) {
+            console.log(error);
+
+        }
+        ;
+    }
+    return (
+        <div className={cn("min-h-screen flex flex-col items-center justify-center gap-6", className)} {...props}>
+            <div className=" dark w-full  max-w-sm" >
+                <Card >
+                    <CardHeader>
+                        <CardTitle>Login to your account</CardTitle>
+                        <CardDescription>
+                            Enter your email below to login to your account
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form>
+                            <FieldGroup>
+                                <Field>
+                                    <FieldLabel htmlFor="email">Email</FieldLabel>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        placeholder="m@example.com"
+                                        required
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            email: e.target.value,
+                                        })}
+                                    />
+                                </Field>
+                                <Field>
+                                    <div className="flex items-center">
+                                        <FieldLabel htmlFor="password">Password</FieldLabel>
+                                        <a
+                                            href="#"
+                                            className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                                        >
+                                            Forgot your password?
+                                        </a>
+                                    </div>
+                                    <Input id="password" type="password" required value=
+                                        {formData.password}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            password: e.target.value,
+                                        })
+                                        } />
+                                </Field>
+                                <Field>
+                                    <Button type="submit" onClick={handleLogin} >Login</Button>
+                                    <Button variant="outline" type="button">
+                                        Login with Google
+                                    </Button>
+                                    <FieldDescription className="text-center">
+                                        Don&apos;t have an account? <a href="#">Sign up</a>
+                                    </FieldDescription>
+                                </Field>
+                            </FieldGroup>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    )
+}
+
+export default LoginForm
