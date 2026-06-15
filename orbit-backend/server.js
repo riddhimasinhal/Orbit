@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const creatorRoutes = require("./routes/creatorRoutes");
-
+const brandRoutes = require("./routes/brandRoutes");
 dotenv.config();
 
 connectDB();
@@ -19,6 +19,8 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/creator", creatorRoutes);
+app.use("/api/brand", brandRoutes);
+
 app.get('/', (req, res) => {
     res.send("API running");
 })

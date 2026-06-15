@@ -4,11 +4,23 @@ const jwt = require("jsonwebtoken");
 
 const signup = async (req, res) => {
     try {
+
         const { name, email, password, confirmPass, role } = req.body;
         if (!name || !email || !password || !confirmPass || !role) {
             return res.status(400).json({
                 message: "All fields are required",
             })
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                message: "Please entre a valid email",
+            });
+        }
+        if (password.length < 8) {
+            return res.status(400).json({
+                message: "Password must be at least 8 characters"
+            });
         }
         if (password !== confirmPass) {
             return res.status(400).json({
@@ -50,6 +62,11 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({
+                message: "Email and Password are required",
+            });
+        }
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({

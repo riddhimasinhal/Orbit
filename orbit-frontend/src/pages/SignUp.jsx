@@ -21,6 +21,7 @@ export default function SignupForm({
     className,
     ...props
 }) {
+    const [error, setError] = useState("");
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         name: "",
@@ -34,7 +35,9 @@ export default function SignupForm({
     const handleclick = async (e) => {
 
         e.preventDefault();
+        setError("");
         try {
+            console.log(role);
             const response = await axios.post(
                 "http://localhost:5000/api/auth/signup",
                 {
@@ -43,12 +46,24 @@ export default function SignupForm({
                 }
             );
             console.log(response.data);
+            toast("Acount created succesfully");
+            navigate("/login");
         }
         catch (error) {
-            console.log(error.response?.data);
+            // console.log(error.response?.data);
+            setError(
+                error.response?.data?.message ||
+                "Something went wrong"
+            );
+            console.log(
+                error.response?.data?.message
+            );
+            // console.log("CATCH RUNNING");
+            // console.log(error);
+
+            // setError("TEST ERROR");
         }
-        toast("ACcount created succesfully");
-        navigate("/login");
+
     }
     return (
         <div className={cn(" dark min-h-screen flex flex-col bg-[#0F0B1F] items-center justify-center gap-6", className)} {...props}>
@@ -65,11 +80,12 @@ export default function SignupForm({
                                 </div>
                                 <Tabs defaultValue="creator" className="w-full " onValueChange={(value) => setRole(value)}>
                                     <TabsList className="grid w-full grid-cols-2">
-                                        <TabsTrigger value="creator" className=" data-[state=active]:bg-violet-950 data-[state=active]:text-white " >
+                                        <TabsTrigger value="creator" className=" data-[state=active]:bg-violet-950 data-[state=active]:text-white " onClick={() => setRole("creator")}
+                                        >
                                             As a Creator
                                         </TabsTrigger>
 
-                                        <TabsTrigger value="brand" className=" data-[state=active]:bg-violet-950 data-[state=active]:text-white "  >
+                                        <TabsTrigger value="brand" className=" data-[state=active]:bg-violet-950 data-[state=active]:text-white " onClick={() => setRole("brand")} >
                                             As a Brand
                                         </TabsTrigger>
                                     </TabsList>
@@ -128,6 +144,11 @@ export default function SignupForm({
                                             </FieldDescription>
                                         </Field>
                                         <Field>
+                                            {error && (
+                                                <p className="text-red-500 text-sm">
+                                                    {error}
+                                                </p>
+                                            )}
                                             <Button type="submit" onClick={handleclick}>Create Account</Button>
                                         </Field>
                                         <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
@@ -224,6 +245,13 @@ export default function SignupForm({
                                             </FieldDescription>
                                         </Field>
                                         <Field>
+                                            {
+                                                error && (
+                                                    <p className="text-red-500 text-sm">
+                                                        {error}
+                                                    </p>
+                                                )
+                                            }
                                             <Button type="submit" className=" w-full bg-gradient-to-r from-violet-300 to-purple-200 hover:from-violet-500 hover:to-purple-400 " onClick={handleclick} >Create Account</Button>
                                         </Field>
                                         <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">

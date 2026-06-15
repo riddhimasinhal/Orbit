@@ -22,6 +22,7 @@ export function LoginForm({
     className,
     ...props
 }) {
+    const [error, setError] = useState("");
     const [formData, setFormData] = useState({
         email: "",
         password: "",
@@ -29,6 +30,7 @@ export function LoginForm({
     const navigate = useNavigate();
     const handleLogin = async (e) => {
         e.preventDefault();
+        setError("");
         try {
             const response = await axios.post(
                 "http://localhost:5000/api/auth/login",
@@ -36,7 +38,7 @@ export function LoginForm({
 
             );
             console.log("Login Response:", response.data);
-            console.log(response.data);
+
             localStorage.setItem(
                 "token",
                 response.data.token
@@ -47,13 +49,15 @@ export function LoginForm({
             );
 
 
-            const role = response.data.role; // later comes from backend
+            const role = response.data.role; //  comes from backend
             const onBoardingCompleted =
                 response.data.onBoardingCompleted;
+            console.log("Role:", role);
             if (!onBoardingCompleted) {
                 if (role === "creator") {
                     navigate("/creator-onboarding");
                 } else {
+                    console.log("Going to brand onboarding");
                     navigate("/brand-onboarding");
                 }
             }
@@ -62,7 +66,9 @@ export function LoginForm({
             }
 
         } catch (error) {
-            console.log(error);
+            setError(
+                error.response?.data?.message || "Something went wrong"
+            );
 
         }
         ;
@@ -113,6 +119,11 @@ export function LoginForm({
                                         } />
                                 </Field>
                                 <Field>
+                                    {error && (
+                                        <p className="text-red-500 text-sm">
+                                            {error}
+                                        </p>
+                                    )}
                                     <Button type="submit" onClick={handleLogin} >Login</Button>
                                     <Button variant="outline" type="button">
                                         Login with Google
