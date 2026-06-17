@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { useState } from "react"
 import { toast } from "sonner";
 
@@ -23,69 +23,64 @@ export default function SignupForm({
 }) {
     const [error, setError] = useState("");
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         password: "",
         confirmPass: ""
     });
-    const [role, setRole] = useState("creator");
+    const [role, setRole] = useState(() =>
+        searchParams.get("role") === "brand" ? "brand" : "creator"
+    );
 
-
-    const handleclick = async (e) => {
-
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
+
+        if (formData.password !== formData.confirmPass) {
+            setError("Passwords do not match");
+            return;
+        }
+
+        if (formData.password.length < 8) {
+            setError("Password must be at least 8 characters");
+            return;
+        }
+
         try {
-            console.log(role);
-            const response = await axios.post(
-                "http://localhost:5000/api/auth/signup",
-                {
-                    ...formData,
-                    role,
-                }
-            );
-            console.log(response.data);
-            toast("Acount created succesfully");
+            await axios.post("http://localhost:5000/api/auth/signup", {
+                ...formData,
+                role,
+            });
+            toast.success("Account created successfully");
             navigate("/login");
-        }
-        catch (error) {
-            // console.log(error.response?.data);
+        } catch (err) {
             setError(
-                error.response?.data?.message ||
-                "Something went wrong"
+                err.response?.data?.message || "Something went wrong"
             );
-            console.log(
-                error.response?.data?.message
-            );
-            // console.log("CATCH RUNNING");
-            // console.log(error);
-
-            // setError("TEST ERROR");
         }
-
-    }
+    };
     return (
         <div className={cn(" dark min-h-screen flex flex-col bg-[#0F0B1F] items-center justify-center gap-6", className)} {...props}>
             <div className="w-full  max-w-200" >
                 <Card className="overflow-hidden p-0">
                     <CardContent className="grid p-0 md:grid-cols-2">
-                        <form className="p-6 md:p-8">
+                        <form className="p-6 md:p-8" onSubmit={handleSubmit}>
                             <FieldGroup>
                                 <div className="flex flex-col items-center gap-2 text-center">
                                     <h1 className="text-2xl font-bold">Join Orbit</h1>
                                     <p className="text-sm text-balance text-muted-foreground">
-                                        Connect with brands and creators efforstlessly
+                                        Connect with brands and creators effortlessly
                                     </p>
                                 </div>
-                                <Tabs defaultValue="creator" className="w-full " onValueChange={(value) => setRole(value)}>
+                                <Tabs value={role} className="w-full " onValueChange={(value) => setRole(value)}>
                                     <TabsList className="grid w-full grid-cols-2">
-                                        <TabsTrigger value="creator" className=" data-[state=active]:bg-violet-950 data-[state=active]:text-white " onClick={() => setRole("creator")}
-                                        >
+                                        <TabsTrigger value="creator" className=" data-[state=active]:bg-violet-950 data-[state=active]:text-white ">
                                             As a Creator
                                         </TabsTrigger>
 
-                                        <TabsTrigger value="brand" className=" data-[state=active]:bg-violet-950 data-[state=active]:text-white " onClick={() => setRole("brand")} >
+                                        <TabsTrigger value="brand" className=" data-[state=active]:bg-violet-950 data-[state=active]:text-white ">
                                             As a Brand
                                         </TabsTrigger>
                                     </TabsList>
@@ -149,7 +144,7 @@ export default function SignupForm({
                                                     {error}
                                                 </p>
                                             )}
-                                            <Button type="submit" onClick={handleclick}>Create Account</Button>
+                                            <Button type="submit">Create Account</Button>
                                         </Field>
                                         <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                                             Or continue with
@@ -184,31 +179,42 @@ export default function SignupForm({
                                             </Button>
                                         </Field>
                                         <FieldDescription className="text-center">
-                                            Already have an account? <a href="#">Sign in</a>
+                                            Already have an account?{" "}
+                                            <Link to="/login" className="underline underline-offset-4 hover:text-primary">
+                                                Sign in
+                                            </Link>
                                         </FieldDescription>
                                     </TabsContent>
 
                                     <TabsContent value="brand" className="mt-4 flex flex-col gap-4">
                                         <Field>
-                                            <FieldLabel htmlFor="companyname">Company Name</FieldLabel>
-                                            <Input id="companyname" type="text" placeholder="xyz" required onChange={(e) =>
-                                                setFormData({
-                                                    ...formData, name: e.target.value,
-
-                                                })
-                                            } />
-                                        </Field>
-                                        <Field>
-                                            <FieldLabel htmlFor="email">Email</FieldLabel>
+                                            <FieldLabel htmlFor="brand-companyname">Company Name</FieldLabel>
                                             <Input
-                                                id="email"
-                                                type="email"
-                                                placeholder="m@example.com"
+                                                id="brand-companyname"
+                                                type="text"
+                                                placeholder="Your company"
+                                                value={formData.name}
                                                 required
                                                 onChange={(e) =>
                                                     setFormData({
-                                                        ...formData, email: e.target.value,
-
+                                                        ...formData,
+                                                        name: e.target.value,
+                                                    })
+                                                }
+                                            />
+                                        </Field>
+                                        <Field>
+                                            <FieldLabel htmlFor="brand-email">Email</FieldLabel>
+                                            <Input
+                                                id="brand-email"
+                                                type="email"
+                                                placeholder="m@example.com"
+                                                required
+                                                value={formData.email}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        email: e.target.value,
                                                     })
                                                 }
                                             />
@@ -220,24 +226,36 @@ export default function SignupForm({
                                         <Field>
                                             <Field className="grid grid-cols-2 gap-4">
                                                 <Field>
-                                                    <FieldLabel htmlFor="password">Password</FieldLabel>
-                                                    <Input id="password" type="password" required onChange={(e) =>
-                                                        setFormData({
-                                                            ...formData, password: e.target.value,
-
-                                                        })
-                                                    } />
+                                                    <FieldLabel htmlFor="brand-password">Password</FieldLabel>
+                                                    <Input
+                                                        id="brand-password"
+                                                        type="password"
+                                                        required
+                                                        value={formData.password}
+                                                        onChange={(e) =>
+                                                            setFormData({
+                                                                ...formData,
+                                                                password: e.target.value,
+                                                            })
+                                                        }
+                                                    />
                                                 </Field>
                                                 <Field>
-                                                    <FieldLabel htmlFor="confirm-password">
+                                                    <FieldLabel htmlFor="brand-confirm-password">
                                                         Confirm Password
                                                     </FieldLabel>
-                                                    <Input id="confirm-password" type="password" required onChange={(e) =>
-                                                        setFormData({
-                                                            ...formData, confirmPass: e.target.value,
-
-                                                        })
-                                                    } />
+                                                    <Input
+                                                        id="brand-confirm-password"
+                                                        type="password"
+                                                        required
+                                                        value={formData.confirmPass}
+                                                        onChange={(e) =>
+                                                            setFormData({
+                                                                ...formData,
+                                                                confirmPass: e.target.value,
+                                                            })
+                                                        }
+                                                    />
                                                 </Field>
                                             </Field>
                                             <FieldDescription>
@@ -252,7 +270,12 @@ export default function SignupForm({
                                                     </p>
                                                 )
                                             }
-                                            <Button type="submit" className=" w-full bg-gradient-to-r from-violet-300 to-purple-200 hover:from-violet-500 hover:to-purple-400 " onClick={handleclick} >Create Account</Button>
+                                            <Button
+                                                type="submit"
+                                                className="w-full bg-gradient-to-r from-violet-300 to-purple-200 hover:from-violet-500 hover:to-purple-400"
+                                            >
+                                                Create Account
+                                            </Button>
                                         </Field>
                                         <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                                             Or continue with
@@ -287,7 +310,10 @@ export default function SignupForm({
                                             </Button>
                                         </Field>
                                         <FieldDescription className="text-center">
-                                            Already have an account? <a href="#">Log in</a>
+                                            Already have an account?{" "}
+                                            <Link to="/login" className="underline underline-offset-4 hover:text-primary">
+                                                Log in
+                                            </Link>
                                         </FieldDescription>
                                     </TabsContent>
                                 </Tabs>

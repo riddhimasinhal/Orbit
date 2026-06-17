@@ -3,6 +3,8 @@ const router = express.Router();
 
 const {
     createBrandProfile,
+    updateBrandProfile,
+    getBrandProfile,
 } = require("../controllers/brandController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -12,5 +14,15 @@ router.post(
     authMiddleware,
     createBrandProfile
 );
+router.put(
+    "/save-step",
+    authMiddleware,
+    updateBrandProfile
+);
+router.get(
+    "/profile",
+    authMiddleware,
+    getBrandProfile
+)
 
 module.exports = router;

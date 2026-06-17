@@ -6,7 +6,10 @@ const brandProfileSchema = new mongoose.Schema({
         ref: "User",
         required: true,
     },
-
+    currentStep: {
+        type: Number,
+        default: 1,
+    },
     companyName: String,
     industry: String,
     companySize: String,

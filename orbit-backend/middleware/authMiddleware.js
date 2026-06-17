@@ -14,6 +14,7 @@ const authMiddleware = (req, res, next) => {
             process.env.JWT_SECRET
         );
         req.user = decoded;
+        console.log("decoded", decoded)
         // console.log("Headers:", req.headers);
         // console.log("Token:", req.header("Authorization"));
         next();

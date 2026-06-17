@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 import axios from "axios"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 
 const categories = [
     "Tech",
@@ -18,6 +19,8 @@ const categories = [
     "Lifestyle",
 ];
 const CreatorOnBoard = () => {
+    const [loading , setLoading]= useState(true);
+    const [error, setError] = useState("");
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
         fullName: "",
@@ -34,7 +37,58 @@ const CreatorOnBoard = () => {
         averageViews: "",
         audienceCountry: "",
     });
-    // const token = localStorage.getItem("token");
+    const navigate = useNavigate();
+
+
+
+    useEffect(()=>{
+        const loadProfile = async ()=>{
+            try{
+                const token = localStorage.getItem("token");
+
+                const response = await axios.get("http://localhost:5000/api/creator/profile",
+                    {
+                        headers:{
+                            Authorization: token,
+                        },
+                    }
+                );
+
+                const{creator, onBoardingCompleted}= response.data;
+                if(onBoardingCompleted){
+                    navigate("/creator/dashboard");
+                    return;
+                }
+                setFormData({
+                    fullName: creator.fullName || "",
+                    username: creator.username || "",
+                    location: creator.location || "",
+                    niche: creator.niche || "",
+                    bio: creator.bio || "",
+                    instagramUsername: creator.instagramUsername || "",
+                    youtubeUrl: creator.youtubeUrl || "",
+                    linkedInUrl: creator.linkedInUrl || "",
+                    portfolioUrl: creator.portfolioUrl || "",
+                    instagramFollowers: creator.instagramFollowers ?? "",
+                    youtubeSubscribers: creator.youtubeSubscribers ?? "",
+                    averageViews: creator.averageViews ?? "",
+                    audienceCountry: creator.audienceCountry || "",
+                });
+
+                //to load current step
+                if(creator.currentStep && creator.currentStep>1){
+                    setStep(creator.currentStep);
+                }
+            }
+            catch(error){
+                console.log("Failed to load profile:", error);
+            } finally{
+                setLoading(false);
+            }
+        };
+        loadProfile();
+    },[navigate]);
+
     const handleSubmit = async () => {
         try {
             const token = localStorage.getItem("token");
@@ -43,16 +97,53 @@ const CreatorOnBoard = () => {
             const response = await axios.post("http://localhost:5000/api/creator/onboarding", formData,
                 {
                     headers: {
-                        Authorization: token,
+                        Authorization:  token,
                     },
                 }
             );
             console.log(response.data);
+            navigate('/creator/dashboard')
         }
         catch (error) {
             console.log(error);
         }
 
+    }
+    const nextStep = async () => {
+        setError("");
+     if(step=== 1 && !formData.fullName.trim()){
+        setError("Full name is required");
+        return;
+    }
+    try{
+        const token = localStorage.getItem("token");
+
+        await axios.put(
+            "http://localhost:5000/api/creator/save-step",
+            {
+                ...formData,
+                currentStep: step + 1,
+            },
+            {
+                headers: {
+                    Authorization: token,
+                },
+            }
+        );
+
+        setStep(step + 1);
+    }catch(error){
+        setError(
+            error.response?.data?.message||"Failed to save , Try again."
+        );
+    }
+    };
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#0F0B1F] flex items-center justify-center">
+                <p className="text-white">Loading your progress...</p>
+            </div>
+        );
     }
     return (
         <div className="min-h-screen bg-[#0F0B1F] flex items-center justify-center p-6">
@@ -64,6 +155,7 @@ const CreatorOnBoard = () => {
                     <Progress value={(step / 4) * 100} />
                 </CardHeader>
                 <CardContent>
+                {error && <p className="text-red-500 text-sm">{error}</p> }
                     {step === 1 && (
                         <div className="space-y-5">
                             <div>
@@ -81,19 +173,14 @@ const CreatorOnBoard = () => {
                                 fullName: e.target.value,
                             })} />
 
-                            <Input placeholder="Username" required value={formData.username} onChange={(e) => setFormData({
-                                ...formData,
-                                username: e.target.value,
-                            })} />
-
                             <Input placeholder="Location" required value={formData.location} onChange={(e) => setFormData({
                                 ...formData,
                                 location: e.target.value,
                             })} />
-
+                           
                             <Button
                                 className="w-full"
-                                onClick={() => setStep(2)}
+                                onClick={nextStep}
                             >
                                 Continue
                             </Button>
@@ -143,7 +230,7 @@ const CreatorOnBoard = () => {
                             </Button>
                             <Button
                                 className="w-full"
-                                onClick={() => setStep(3)}
+                                onClick={nextStep}
                             >
                                 Continue
                             </Button>
@@ -189,7 +276,7 @@ const CreatorOnBoard = () => {
                             </Button>
                             <Button
                                 className="w-full"
-                                onClick={() => setStep(4)}
+                                onClick={nextStep}
                             >
                                 Continue
                             </Button>

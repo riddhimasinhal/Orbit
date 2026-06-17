@@ -1,6 +1,8 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const BrandProfile = require("../models/BrandProfile");
+const CreatorProfile = require("../models/CreatorProfile");
 
 const signup = async (req, res) => {
     try {
@@ -43,6 +45,19 @@ const signup = async (req, res) => {
             password: hashedPass,
             role,
         });
+        if (role === "creator") {
+            await CreatorProfile.create({
+                userId: user._id,
+                currentStep: 1,
+            });
+        }
+        else {
+            await BrandProfile.create({
+                userId: user._id,
+                currentStep: 1,
+            });
+        }
+
 
 
         res.status(201).json({

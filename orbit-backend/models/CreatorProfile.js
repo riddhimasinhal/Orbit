@@ -9,6 +9,10 @@ const creatorProfileSchema = new mongoose.Schema({
 
   fullName: String,
   username: String,
+  currentStep: {
+    type: Number,
+    default: 1
+  },
   location: String,
 
   niche: String,

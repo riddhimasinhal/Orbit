@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 import axios from "axios"
-import { useState } from "react"
+import { useState , useEffect} from "react"
+import { useNavigate } from "react-router-dom"
 
 const categories = [
     "Tech",
@@ -18,7 +19,10 @@ const categories = [
     "Food",
     "Lifestyle",
 ];
-const CreatorOnBoard = () => {
+const BrandOnBoard = () => {
+    const navigate = useNavigate();
+    const [loading , setLoading]= useState(true);
+    const [ error, setError]= useState("");
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
         companyName: "",
@@ -42,7 +46,59 @@ const CreatorOnBoard = () => {
         campaignFrequency: "",
         targetCountry: "",
     });
+    useEffect(() => {
+        const loadProfile = async () => {
+            try {
+                const token = localStorage.getItem("token");
 
+                const response = await axios.get(
+                    "http://localhost:5000/api/brand/profile",
+                    {
+                        headers: {
+                            Authorization: token,
+                        },
+                    }
+                );
+
+                const { brand, onBoardingCompleted } = response.data;
+
+                if (onBoardingCompleted) {
+                    navigate("/brand/dashboard");
+                    return;
+                }
+
+                setFormData({
+                    companyName: brand.companyName || "",
+                    industry: brand.industry || "",
+                    companySize: brand.companySize || "",
+                    website: brand.website || "",
+                    location: brand.location || "",
+                    description: brand.description || "",
+                    targetAudience: brand.targetAudience || "",
+                    marketingGoals: brand.marketingGoals || "",
+                    preferredNiche: brand.preferredNiche || "",
+                    instagramPage: brand.instagramPage || "",
+                    linkedInPage: brand.linkedInPage || "",
+                    contactEmail: brand.contactEmail || "",
+                    contactPerson: brand.contactPerson || "",
+                    budgetRange: brand.budgetRange || "",
+                    preferredPlatform: brand.preferredPlatform || "",
+                    campaignFrequency: brand.campaignFrequency || "",
+                    targetCountry: brand.targetCountry || "",
+                });
+
+                if (brand.currentStep && brand.currentStep > 1) {
+                    setStep(brand.currentStep);
+                }
+            } catch (error) {
+                console.log("Failed to load profile:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadProfile();
+    }, [navigate]);
     const handleSubmit = async () => {
         try {
             const token = localStorage.getItem("token");
@@ -56,12 +112,50 @@ const CreatorOnBoard = () => {
                 }
             );
             console.log(response.data);
+            navigate('/brand/dashboard')
         }
         catch (error) {
             console.log(error);
         }
 
     }
+    const nextStep = async () => {
+        setError("");
+     if(step === 1 && !formData.companyName.trim()){
+        setError("Company name is required");
+        return;
+    }
+    try{
+        const token = localStorage.getItem("token");
+
+        await axios.put(
+            "http://localhost:5000/api/brand/save-step",
+            {
+                ...formData,
+                currentStep: step + 1,
+            },
+            {
+                headers: {
+                    Authorization: token,
+                },
+            }
+        );
+
+        setStep(step + 1);
+    }catch(error){
+        setError(
+            error.response?.data?.message||"Failed to save , Try again."
+        );
+    }
+    };
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#0F0B1F] flex items-center justify-center">
+                <p className="text-white">Loading your progress...</p>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-[#0F0B1F] flex items-center justify-center p-6">
             <Card className="w-full max-w-xl" >
@@ -72,6 +166,7 @@ const CreatorOnBoard = () => {
                     <Progress value={(step / 4) * 100} />
                 </CardHeader>
                 <CardContent>
+                {error && <p className="text-red-500 text-sm">{error}</p> }
                     {step === 1 && (
                         <div className="space-y-5">
                             <div>
@@ -141,7 +236,7 @@ const CreatorOnBoard = () => {
 
                             <Button
                                 className="w-full"
-                                onClick={() => setStep(2)}
+                                onClick={nextStep}
                             >
                                 Continue
                             </Button>
@@ -201,7 +296,7 @@ const CreatorOnBoard = () => {
 
                             <Button
                                 className="w-full"
-                                onClick={() => setStep(3)}
+                                onClick={nextStep}
                             >
                                 Continue
                             </Button>
@@ -271,7 +366,7 @@ const CreatorOnBoard = () => {
 
                             <Button
                                 className="w-full"
-                                onClick={() => setStep(4)}
+                                onClick={nextStep}
                             >
                                 Continue
                             </Button>
@@ -379,4 +474,4 @@ const CreatorOnBoard = () => {
     )
 }
 
-export default CreatorOnBoard
+export default BrandOnBoard
