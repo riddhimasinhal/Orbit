@@ -5,6 +5,8 @@ const {
     createBrandProfile,
     updateBrandProfile,
     getBrandProfile,
+    getAllBrands,
+    getBrandById,
 } = require("../controllers/brandController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -23,6 +25,18 @@ router.get(
     "/profile",
     authMiddleware,
     getBrandProfile
+)
+
+router.get(
+    "/all",
+    authMiddleware,
+    getAllBrands,
+)
+
+router.get(
+    "/:id",
+    authMiddleware,
+    getBrandById,
 )
 
 module.exports = router;

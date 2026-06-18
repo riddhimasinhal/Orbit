@@ -5,6 +5,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const creatorRoutes = require("./routes/creatorRoutes");
 const brandRoutes = require("./routes/brandRoutes");
+const connectionRoutes = require("./routes/connectionRoutes");
 dotenv.config();
 
 connectDB();
@@ -25,11 +26,12 @@ app.use((req, res, next) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/creator", creatorRoutes);
 app.use("/api/brand", brandRoutes);
+app.use("/api/connections", connectionRoutes);
 
 app.get('/', (req, res) => {
     res.send("API running");
 })
-app
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(">>> SERVER RESTARTED AT:", new Date().toLocaleTimeString());

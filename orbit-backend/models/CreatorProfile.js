@@ -15,7 +15,7 @@ const creatorProfileSchema = new mongoose.Schema({
   },
   location: String,
 
-  niche: String,
+  niche: [String],
   bio: String,
 
   instagramUsername: String,

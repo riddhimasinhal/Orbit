@@ -2,14 +2,16 @@ const jwt = require("jsonwebtoken");
 
 const authMiddleware = (req, res, next) => {
     try {
-        const token = req.header("Authorization");
+        const rawToken = req.header("Authorization");
         console.log("Received Token:");
-        console.log(req.header("Authorization"));
-        if (!token) {
+        console.log(rawToken);
+        if (!rawToken) {
             return res.status(401).json({
                 message: "No token provided",
             });
         }
+        // remove Bearer if someone sends it that way
+        const token = rawToken.startsWith("Bearer ") ? rawToken.slice(7) : rawToken;
         const decoded = jwt.verify(token,
             process.env.JWT_SECRET
         );

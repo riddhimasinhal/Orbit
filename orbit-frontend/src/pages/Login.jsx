@@ -1,148 +1,119 @@
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import axios from "axios";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { Sparkles } from "lucide-react";
+import axios from "axios";
+import { toast } from "sonner";
 
-export function LoginForm({ className, ...props }) {
-  const [error, setError] = useState("");
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-  const navigate = useNavigate();
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
-    try {
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
-        formData,
-      );
-      console.log("Login Response:", response.data);
+export function LoginForm() {
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        email: "",
+        password: "",
+    });
+    const navigate = useNavigate();
 
-      localStorage.setItem("token", response.data.token);
-      console.log("Stored Token:", localStorage.getItem("token"));
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        setError("");
+        setLoading(true);
+        try {
+            const response = await axios.post(
+                "http://localhost:5001/api/auth/login",
+                formData,
+            );
+            console.log("Login Response:", response.data);
 
-      const role = response.data.role; //  comes from backend
-      const onBoardingCompleted = response.data.onBoardingCompleted;
-      console.log("Role:", role);
+            localStorage.setItem("token", response.data.token);
+            console.log("Stored Token:", localStorage.getItem("token"));
+            toast.success("Login successful");
 
-      if (onBoardingCompleted) {
-        if (role === "creator") {
-          navigate("/creator/dashboard");
-        } else {
-          navigate("/brand/dashboard");
+            const role = response.data.role;
+            const onBoardingCompleted = response.data.onBoardingCompleted;
+            console.log("Role:", role);
+
+            if (onBoardingCompleted) {
+                if (role === "creator") {
+                    navigate("/creator/dashboard");
+                } else {
+                    navigate("/brand/dashboard");
+                }
+            } else {
+                if (role === "creator") {
+                    navigate("/creator-onboarding");
+                } else {
+                    console.log("Going to brand onboarding");
+                    navigate("/brand-onboarding");
+                }
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Something went wrong")
+            setError(error.response?.data?.message || "Something went wrong");
+        } finally {
+            setLoading(false);
         }
-      } else {
-        if (role === "creator") {
-          navigate("/creator-onboarding");
-        } else {
-          console.log("Going to brand onboarding");
-          navigate("/brand-onboarding");
-        }
-      }
-    } catch (error) {
-      setError(error.response?.data?.message || "Something went wrong");
-    }
-  };
-  return (
-    <div
-      className={cn(
-        "min-h-screen flex flex-col items-center justify-center gap-6",
-        className,
-      )}
-      {...props}
-    >
-      <div className=" dark w-full  max-w-sm">
-        <Card>
-          <CardHeader>
-            <CardTitle>Login to your account</CardTitle>
-            <CardDescription>
-              Enter your email below to login to your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin}>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="email">Email</FieldLabel>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    required
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        email: e.target.value,
-                      })
-                    }
-                  />
-                </Field>
-                <Field>
-                  <div className="flex items-center">
-                    <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <a
-                      href="#"
-                      className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                    >
-                      Forgot your password?
-                    </a>
-                  </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        password: e.target.value,
-                      })
-                    }
-                  />
-                </Field>
-                <Field>
-                  {error && <p className="text-red-500 text-sm">{error}</p>}
-                  <Button type="submit" onClick={handleLogin}>
-                    Login
-                  </Button>
-                  <Button variant="outline" type="button">
-                    Login with Google
-                  </Button>
-                  <FieldDescription className="text-center">
-                    Don&apos;t have an account?{" "}
-                    <Link
-                      to="/signup"
-                      className="underline underline-offset-4 hover:text-primary"
-                    >
-                      Sign up
-                    </Link>
-                  </FieldDescription>
-                </Field>
-              </FieldGroup>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+    };
+
+    return (
+        <div className="min-h-screen bg-[#08080c] flex flex-col items-center justify-center px-4">
+            <div className="w-full max-w-md">
+                {/* logo */}
+                <div className="flex items-center justify-center gap-2.5 mb-8">
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-violet-500/15 ring-1 ring-violet-500/30">
+                        <Sparkles className="size-4 text-violet-300" />
+                    </div>
+                    <span className="text-lg font-semibold tracking-tight text-white">Orbit</span>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8">
+                    <div className="mb-6">
+                        <h1 className="text-2xl font-semibold text-white">Welcome back</h1>
+                        <p className="mt-1 text-sm text-zinc-500">Enter your credentials to access your account</p>
+                    </div>
+
+                    <form onSubmit={handleLogin} className="space-y-4">
+                        <div>
+                            <label className="text-sm text-zinc-400 mb-1.5 block">Email</label>
+                            <Input
+                                type="email"
+                                placeholder="you@example.com"
+                                required
+                                className="bg-white/5 border-white/10 text-white placeholder:text-zinc-500"
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-sm text-zinc-400">Password</label>
+                                <a href="#" className="text-xs text-violet-400 hover:text-violet-300">Forgot password?</a>
+                            </div>
+                            <Input
+                                type="password"
+                                required
+                                className="bg-white/5 border-white/10 text-white"
+                                value={formData.password}
+                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            />
+                        </div>
+
+                        {error && <p className="text-red-400 text-sm">{error}</p>}
+
+                        <Button type="submit" className="w-full bg-violet-600 text-white hover:bg-violet-500" disabled={loading}>
+                            {loading ? "Logging in..." : "Log in"}
+                        </Button>
+                    </form>
+
+                    <p className="mt-6 text-center text-sm text-zinc-500">
+                        Don't have an account?{" "}
+                        <Link to="/signup" className="text-violet-400 hover:text-violet-300">Sign up</Link>
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export default LoginForm;

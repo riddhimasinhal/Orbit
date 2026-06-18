@@ -5,10 +5,12 @@ const createCreatorProfile = async (req, res) => {
         const userId = req.user.userId;
         // console.log("REQ USER:", req.user);
         // console.log("REQ BODY:", req.body);
+        const { fullName, username, location, niche, bio, instagramUsername, youtubeUrl, linkedInUrl, portfolioUrl, instagramFollowers, youtubeSubscribers, averageViews, audienceCountry } = req.body;
+
         const creator =
             await CreatorProfile.findOneAndUpdate(
                 { userId },
-                { ...req.body },
+                { fullName, username, location, niche, bio, instagramUsername, youtubeUrl, linkedInUrl, portfolioUrl, instagramFollowers, youtubeSubscribers, averageViews, audienceCountry },
                 { new: true });
         await User.findByIdAndUpdate(
             userId,
@@ -41,9 +43,10 @@ const getCreatorProfile = async (req, res) => {
             });
 
         }
+        const user = await User.findById(userId);
         res.status(200).json({
             creator,
-            onBoardingCompleted: req.user?.onBoardingCompleted ?? false,
+            onBoardingCompleted: user?.onBoardingCompleted ?? false,
         })
     }
     catch (error) {
@@ -66,9 +69,11 @@ const updateCreatorProfile = async (req, res) => {
             })
         }
         //this is validation for required fullName
+        const { currentStep, fullName, username, location, niche, bio, instagramUsername, youtubeUrl, linkedInUrl, portfolioUrl, instagramFollowers, youtubeSubscribers, averageViews, audienceCountry } = req.body;
+
         const profile = await CreatorProfile.findOneAndUpdate(
             { userId },
-            { ...req.body },
+            { currentStep, fullName, username, location, niche, bio, instagramUsername, youtubeUrl, linkedInUrl, portfolioUrl, instagramFollowers, youtubeSubscribers, averageViews, audienceCountry },
             { new: true }
 
         );
@@ -91,8 +96,50 @@ const updateCreatorProfile = async (req, res) => {
         })
     }
 }
+const getAllCreators = async (req, res) => {
+    try {
+        const { search, niche } = req.query;
+        let filter = {};
+
+        if (niche) {
+            filter.niche = niche;
+        }
+        if (search) {
+            filter.$or = [
+                { fullName: { $regex: search, $options: "i" } },
+                { username: { $regex: search, $options: "i" } },
+                { location: { $regex: search, $options: "i" } },
+            ];
+        }
+
+        const creators = await CreatorProfile.find(filter);
+        console.log("Found creators:", creators.length);
+        res.status(200).json({ creators });
+    }
+    catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+}
+const getCreatorById = async (req, res) => {
+    try {
+        const creator = await CreatorProfile.findById(req.params.id);
+        if (!creator) {
+            return res.status(404).json({ message: "Creator not found" })
+        }
+        console.log("Found creator by id:", creator.fullName);
+        res.status(200).json({ creator });
+    }
+    catch (error) {
+        console.log(error)
+        res.status(500).json({ message: error.message })
+    }
+}
+
 module.exports = {
     createCreatorProfile,
     getCreatorProfile,
     updateCreatorProfile,
+    getAllCreators,
+    getCreatorById,
 };

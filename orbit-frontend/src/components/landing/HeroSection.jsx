@@ -8,16 +8,9 @@ export function HeroSection() {
 
     return (
         <section className="relative overflow-hidden pt-28 pb-20 sm:pt-32 sm:pb-28">
+            {/* background glow */}
             <div className="pointer-events-none absolute inset-0">
                 <div className="absolute left-1/2 top-0 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-violet-600/10 blur-[120px]" />
-                <div
-                    className="absolute inset-0 opacity-[0.15]"
-                    style={{
-                        backgroundImage:
-                            "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
-                        backgroundSize: "64px 64px",
-                    }}
-                />
             </div>
 
             <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -29,7 +22,7 @@ export function HeroSection() {
                         Where Creators Meet{" "}
                         <span className="text-violet-300">Opportunities.</span>
                     </h1>
-                    <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-zinc-400 sm:text-lg">
+                    <p className="mx-auto mt-6 max-w-2xl text-base text-zinc-400 sm:text-lg">
                         Orbit helps creators discover brand collaborations and enables brands to
                         find the perfect creators for impactful campaigns.
                     </p>
@@ -53,7 +46,7 @@ export function HeroSection() {
                     </div>
                 </div>
 
-                <div className="mt-16 animate-in fade-in slide-in-from-bottom-8 duration-1000 sm:mt-20">
+                <div className="mt-16 sm:mt-20">
                     <HeroDashboardMockup />
                 </div>
             </div>

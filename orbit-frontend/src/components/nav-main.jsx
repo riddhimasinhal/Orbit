@@ -33,6 +33,9 @@ export function NavMain({
                 <Link to={item.url}>
                   {item.icon}
                   <span>{item.title}</span>
+                  {item.badge && (
+                    <span className="ml-auto flex size-5 items-center justify-center rounded-full bg-violet-500 text-[10px] font-medium text-white">{item.badge}</span>
+                  )}
                 </Link>
               </SidebarMenuButton>
               {item.items?.length ? (

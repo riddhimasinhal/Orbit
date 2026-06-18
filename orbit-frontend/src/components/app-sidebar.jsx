@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { NavUser } from "@/components/nav-user";
 import { NavMain } from "@/components/nav-main";
 import {
@@ -16,6 +18,8 @@ import {
     UserIcon,
     SparklesIcon,
     Building2Icon,
+    SearchIcon,
+    InboxIcon,
 } from "lucide-react";
 
 const sidebarConfig = {
@@ -37,6 +41,16 @@ const sidebarConfig = {
                 title: "My Profile",
                 url: "/creator/profile",
                 icon: <UserIcon />,
+            },
+            {
+                title: "Browse Brands",
+                url: "/creator/browse",
+                icon: <SearchIcon />,
+            },
+            {
+                title: "Requests",
+                url: "/creator/requests",
+                icon: <InboxIcon />,
             },
             {
                 title: "Account Settings",
@@ -65,6 +79,16 @@ const sidebarConfig = {
                 icon: <Building2Icon />,
             },
             {
+                title: "Browse Creators",
+                url: "/brand/browse",
+                icon: <SearchIcon />,
+            },
+            {
+                title: "Requests",
+                url: "/brand/requests",
+                icon: <InboxIcon />,
+            },
+            {
                 title: "Account Settings",
                 url: "/brand/settings",
                 icon: <Settings2Icon />,
@@ -73,8 +97,38 @@ const sidebarConfig = {
     },
 };
 
-export function AppSidebar({ role = "creator", ...props }) {
+export function AppSidebar({ role = "creator", user, ...props }) {
     const config = sidebarConfig[role];
+    const displayUser = user || config.user;
+    const [pendingCount, setPendingCount] = useState(0)
+
+    useEffect(() => {
+        const fetchCount = async () => {
+            try {
+                const token = localStorage.getItem("token")
+                const res = await axios.get("http://localhost:5001/api/connections/count", {
+                    headers: { Authorization: token },
+                })
+                setPendingCount(res.data.count)
+                console.log("Pending requests:", res.data.count)
+            } catch (error) {
+                console.log("Failed to fetch count")
+            }
+        }
+        fetchCount()
+
+        // refresh count every 30 seconds
+        const interval = setInterval(fetchCount, 30000)
+        return () => clearInterval(interval)
+    }, [])
+
+    // add badge to requests nav item
+    const navItems = config.navMain.map((item) => {
+        if (item.title === "Requests" && pendingCount > 0) {
+            return { ...item, badge: pendingCount }
+        }
+        return item
+    })
 
     return (
         <Sidebar
@@ -99,10 +153,10 @@ export function AppSidebar({ role = "creator", ...props }) {
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
-                <NavMain items={config.navMain} />
+                <NavMain items={navItems} />
             </SidebarContent>
             <SidebarFooter>
-                <NavUser user={config.user} />
+                <NavUser user={displayUser} />
             </SidebarFooter>
         </Sidebar>
     );

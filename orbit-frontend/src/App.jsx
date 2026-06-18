@@ -18,6 +18,11 @@ import CreatorProfile from "./pages/profilePages/CreatorProfile"
 import CreatorSettings from "./pages/settings/CreatorSettings"
 import BrandProfile from "./pages/profilePages/BrandProfile"
 import BrandSettings from "./pages/settings/BrandSettings"
+import BrowseCreators from "./pages/BrowseCreators"
+import BrowseBrands from "./pages/BrowseBrands"
+import CreatorDetail from "./pages/CreatorDetail"
+import BrandDetail from "./pages/BrandDetail"
+import Requests from "./pages/Requests"
 
 function App() {
   return (
@@ -50,6 +55,9 @@ function App() {
           <Route path="dashboard" element={<CreatorDashboard />} />
           <Route path="profile" element={<CreatorProfile />} />
           <Route path="settings" element={<CreatorSettings />} />
+          <Route path="browse" element={<BrowseBrands />} />
+          <Route path="brand/:id" element={<BrandDetail />} />
+          <Route path="requests" element={<Requests />} />
         </Route>
 
         <Route
@@ -64,6 +72,9 @@ function App() {
           <Route path="dashboard" element={<BrandDashboard />} />
           <Route path="profile" element={<BrandProfile />} />
           <Route path="settings" element={<BrandSettings />} />
+          <Route path="browse" element={<BrowseCreators />} />
+          <Route path="creator/:id" element={<CreatorDetail />} />
+          <Route path="requests" element={<Requests />} />
         </Route>
 
         <Route path="/creator-dashboard" element={<Navigate to="/creator/dashboard" replace />} />

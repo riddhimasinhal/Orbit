@@ -19,7 +19,7 @@ const brandProfileSchema = new mongoose.Schema({
     description: String,
     targetAudience: String,
     marketingGoals: String,
-    preferredNiche: String,
+    preferredNiche: [String],
 
     instagramPage: String,
     linkedInPage: String,
@@ -30,7 +30,7 @@ const brandProfileSchema = new mongoose.Schema({
     preferredPlatform: String,
     campaignFrequency: String,
     targetCountry: String,
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model(
     "BrandProfile",
