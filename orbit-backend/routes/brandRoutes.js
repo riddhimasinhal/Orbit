@@ -10,20 +10,24 @@ const {
 } = require("../controllers/brandController");
 
 const authMiddleware = require("../middleware/authMiddleware");
+const { requireRole } = require("../middleware/roleMiddleware");
 
 router.post(
     "/onboarding",
     authMiddleware,
+    requireRole("brand"),
     createBrandProfile
 );
 router.put(
     "/save-step",
     authMiddleware,
+    requireRole("brand"),
     updateBrandProfile
 );
 router.get(
     "/profile",
     authMiddleware,
+    requireRole("brand"),
     getBrandProfile
 )
 

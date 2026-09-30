@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { MapPin, Building, Globe, Mail, User } from "lucide-react";
 
 const BrandProfile = () => {
@@ -9,13 +9,7 @@ const BrandProfile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "http://13.239.47.56:5001/api/brand/profile",
-          {
-            headers: { Authorization: token },
-          },
-        );
+        const res = await api.get("/brand/profile");
         console.log("Brand profile:", res.data);
         setProfile(res.data.brand);
       } catch (error) {

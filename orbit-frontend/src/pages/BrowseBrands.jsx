@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "@/lib/api";
 import { Search, MapPin, Building, Globe } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -25,8 +25,7 @@ const BrowseBrands = () => {
 
   const fetchBrands = async () => {
     try {
-      const token = localStorage.getItem("token");
-      let url = "http://13.239.47.56:5001/api/brand/all";
+      let endpoint = "/brand/all";
       const params = [];
       if (searchText.trim()) {
         params.push("search=" + searchText.trim());
@@ -35,12 +34,10 @@ const BrowseBrands = () => {
         params.push("niche=" + selectedNiche);
       }
       if (params.length > 0) {
-        url = url + "?" + params.join("&");
+        endpoint = endpoint + "?" + params.join("&");
       }
-      console.log("Fetching brands:", url);
-      const res = await axios.get(url, {
-        headers: { Authorization: token },
-      });
+      console.log("Fetching brands:", endpoint);
+      const res = await api.get(endpoint);
       setBrands(res.data.brands);
     } catch (error) {
       console.log("Failed to fetch brands", error);

@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
-import axios from "axios";
+import api from "@/lib/api";
 import { toast } from "sonner";
 
 export function LoginForm() {
@@ -20,13 +20,14 @@ export function LoginForm() {
     setError("");
     setLoading(true);
     try {
-      const response = await axios.post(
-        "http://13.239.47.56:5001/api/auth/login",
+      const response = await api.post(
+        "/auth/login",
         formData,
       );
       console.log("Login Response:", response.data);
 
       localStorage.setItem("token", response.data.token);
+      localStorage.setItem("onBoardingCompleted", response.data.onBoardingCompleted ? "true" : "false");
       console.log("Stored Token:", localStorage.getItem("token"));
       toast.success("Login successful");
 

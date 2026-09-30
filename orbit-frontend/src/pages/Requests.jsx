@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { Check, X, Send, Clock } from "lucide-react";
 import { toast } from "sonner";
 
@@ -11,19 +11,8 @@ const Requests = () => {
 
   const fetchRequests = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const receivedRes = await axios.get(
-        "http://13.239.47.56:5001/api/connections/received",
-        {
-          headers: { Authorization: token },
-        },
-      );
-      const sentRes = await axios.get(
-        "http://13.239.47.56:5001/api/connections/sent",
-        {
-          headers: { Authorization: token },
-        },
-      );
+      const receivedRes = await api.get("/connections/received");
+      const sentRes = await api.get("/connections/sent");
       console.log(
         "Received:",
         receivedRes.data.requests.length,
@@ -45,14 +34,7 @@ const Requests = () => {
 
   const handleUpdate = async (id, status) => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.put(
-        "http://13.239.47.56:5001/api/connections/" + id,
-        { status },
-        {
-          headers: { Authorization: token },
-        },
-      );
+      await api.put("/connections/" + id, { status });
       toast.success("Request " + status);
       console.log("Updated request", id, status);
       // refresh the list

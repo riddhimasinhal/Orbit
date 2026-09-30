@@ -3,7 +3,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 
 function BrandLayout() {
   const [userData, setUserData] = useState(null);
@@ -11,13 +11,7 @@ function BrandLayout() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "http://13.239.47.56:5001/api/brand/profile",
-          {
-            headers: { Authorization: token },
-          },
-        );
+        const res = await api.get("/brand/profile");
         console.log("Sidebar brand data:", res.data.brand?.companyName);
         setUserData(res.data.brand);
       } catch (error) {

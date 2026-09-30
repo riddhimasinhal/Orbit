@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "@/lib/api";
 import {
   MapPin,
   AtSign,
@@ -36,24 +36,14 @@ const CreatorDetail = () => {
   useEffect(() => {
     const fetchCreator = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "http://13.239.47.56:5001/api/creator/" + id,
-          {
-            headers: { Authorization: token },
-          },
-        );
+        const res = await api.get("/creator/" + id);
         console.log("Creator detail:", res.data);
         setCreator(res.data.creator);
 
         // check if already connected
         if (res.data.creator?.userId) {
-          const connRes = await axios.get(
-            "http://13.239.47.56:5001/api/connections/check/" +
-              res.data.creator.userId,
-            {
-              headers: { Authorization: token },
-            },
+          const connRes = await api.get(
+            "/connections/check/" + res.data.creator.userId,
           );
           console.log("Connection check:", connRes.data);
           if (connRes.data.exists) {
@@ -73,16 +63,9 @@ const CreatorDetail = () => {
   const handleConnect = async () => {
     setSending(true);
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        "http://13.239.47.56:5001/api/connections/send",
-        {
-          receiverId: creator.userId,
-        },
-        {
-          headers: { Authorization: token },
-        },
-      );
+      await api.post("/connections/send", {
+        receiverId: creator.userId,
+      });
       setConnectionStatus("pending");
       toast.success("Request sent!");
       console.log("Connection request sent to", creator.fullName);

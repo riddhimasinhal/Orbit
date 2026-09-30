@@ -16,7 +16,7 @@ const signup = async (req, res) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({
-                message: "Please entre a valid email",
+                message: "Please enter a valid email",
             });
         }
         if (password.length < 8) {
@@ -73,7 +73,7 @@ const signup = async (req, res) => {
     } catch (error) {
         console.log(error);
         res.status(500).json({
-            message: "Something went wrong",
+            message: error.message || "Something went wrong",
         });
     }
 };
@@ -101,10 +101,15 @@ const login = async (req, res) => {
             });
         }
 
+        if (!process.env.JWT_SECRET) {
+            throw new Error("JWT_SECRET environment variable is not defined");
+        }
+
         const token = jwt.sign(
             {
                 userId: user._id,
                 role: user.role,
+                onBoardingCompleted: user.onBoardingCompleted,
             },
             process.env.JWT_SECRET,
             {

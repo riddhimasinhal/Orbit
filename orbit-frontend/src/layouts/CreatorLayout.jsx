@@ -3,7 +3,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 
 function CreatorLayout() {
   const [userData, setUserData] = useState(null);
@@ -11,13 +11,7 @@ function CreatorLayout() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "http://13.239.47.56:5001/api/creator/profile",
-          {
-            headers: { Authorization: token },
-          },
-        );
+        const res = await api.get("/creator/profile");
         console.log("Sidebar user data:", res.data.creator?.fullName);
         setUserData(res.data.creator);
       } catch (error) {
