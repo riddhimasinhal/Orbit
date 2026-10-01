@@ -27,5 +27,7 @@ const connectionSchema = new mongoose.Schema({
 }, { timestamps: true })
 
 connectionSchema.index({ senderId: 1, receiverId: 1 }, { unique: true });
+connectionSchema.index({ receiverId: 1, status: 1 });
+connectionSchema.index({ senderId: 1 });
 
 module.exports = mongoose.model("Connection", connectionSchema)

@@ -38,7 +38,7 @@ const signup = async (req, res) => {
             })
         }
         const hashedPass = await bcrypt.hash(password, 10);
-        console.log("Request Received", req.body);
+        console.log("Signup request received for email:", email);
         const user = await User.create({
             name,
             email,

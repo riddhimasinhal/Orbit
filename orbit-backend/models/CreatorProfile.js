@@ -30,6 +30,8 @@ const creatorProfileSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
+creatorProfileSchema.index({ userId: 1 }, { unique: true });
+
 module.exports = mongoose.model(
   "CreatorProfile",
   creatorProfileSchema

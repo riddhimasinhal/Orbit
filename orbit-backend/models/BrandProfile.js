@@ -32,6 +32,8 @@ const brandProfileSchema = new mongoose.Schema({
     targetCountry: String,
 }, { timestamps: true });
 
+brandProfileSchema.index({ userId: 1 }, { unique: true });
+
 module.exports = mongoose.model(
     "BrandProfile",
     brandProfileSchema

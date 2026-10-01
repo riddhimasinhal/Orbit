@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const BrandProfile = require("../models/BrandProfile");
 const User = require("../models/User");
 
@@ -116,9 +117,37 @@ const getAllBrands = async (req, res) => {
             ];
         }
 
-        const brands = await BrandProfile.find(filter);
-        console.log("Found brands:", brands.length);
-        res.status(200).json({ brands });
+        let page = parseInt(req.query.page, 10);
+        let limit = parseInt(req.query.limit, 10);
+
+        if (isNaN(page) || page < 1) {
+            page = 1;
+        }
+        if (isNaN(limit) || limit < 1) {
+            limit = 12;
+        }
+        if (limit > 50) {
+            limit = 50;
+        }
+
+        const skip = (page - 1) * limit;
+
+        const [total, brands] = await Promise.all([
+            BrandProfile.countDocuments(filter),
+            BrandProfile.find(filter).skip(skip).limit(limit),
+        ]);
+
+        console.log("Found brands:", brands.length, "Total:", total);
+        res.status(200).json({
+            brands,
+            data: brands,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit) || 1,
+            },
+        });
     }
     catch (error) {
         console.log(error);
@@ -127,6 +156,9 @@ const getAllBrands = async (req, res) => {
 }
 const getBrandById = async (req, res) => {
     try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid brand ID" });
+        }
         const brand = await BrandProfile.findById(req.params.id);
         if (!brand) {
             return res.status(404).json({ message: "Brand not found" })
@@ -135,6 +167,9 @@ const getBrandById = async (req, res) => {
         res.status(200).json({ brand })
     }
     catch (error) {
+        if (error.name === "CastError") {
+            return res.status(400).json({ message: "Invalid brand ID" });
+        }
         console.log(error)
         res.status(500).json({ message: error.message })
     }
