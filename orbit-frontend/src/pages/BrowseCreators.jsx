@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { Search, MapPin, AtSign, Play, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const nicheOptions = [
   "Tech",
@@ -30,23 +31,26 @@ const BrowseCreators = () => {
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [selectedNiche, setSelectedNiche] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const fetchCreators = async () => {
+  const fetchCreators = async (targetPage = page) => {
     try {
-      let endpoint = "/creator/all";
-      const params = [];
+      setLoading(true);
+      let endpoint = `/creator/all?page=${targetPage}&limit=12`;
       if (searchText.trim()) {
-        params.push("search=" + searchText.trim());
+        endpoint += "&search=" + encodeURIComponent(searchText.trim());
       }
       if (selectedNiche) {
-        params.push("niche=" + selectedNiche);
-      }
-      if (params.length > 0) {
-        endpoint = endpoint + "?" + params.join("&");
+        endpoint += "&niche=" + encodeURIComponent(selectedNiche);
       }
       console.log("Fetching creators:", endpoint);
       const res = await api.get(endpoint);
-      setCreators(res.data.creators);
+      setCreators(res.data.creators || res.data.data || []);
+      if (res.data.pagination) {
+        setPage(res.data.pagination.page);
+        setTotalPages(res.data.pagination.totalPages);
+      }
     } catch (error) {
       console.log("Failed to fetch creators", error);
     } finally {
@@ -55,13 +59,20 @@ const BrowseCreators = () => {
   };
 
   useEffect(() => {
-    fetchCreators();
+    setPage(1);
+    fetchCreators(1);
   }, [selectedNiche]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setLoading(true);
-    fetchCreators();
+    setPage(1);
+    fetchCreators(1);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > totalPages || newPage === page) return;
+    setPage(newPage);
+    fetchCreators(newPage);
   };
 
   return (
@@ -198,6 +209,63 @@ const BrowseCreators = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* pagination controls */}
+      {!loading && creators.length > 0 && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page <= 1}
+            className="bg-white/5 border-white/10 text-white hover:bg-white/10 disabled:opacity-40"
+          >
+            Previous
+          </Button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+              if (
+                p === 1 ||
+                p === totalPages ||
+                (p >= page - 1 && p <= page + 1)
+              ) {
+                return (
+                  <Button
+                    key={p}
+                    variant={p === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(p)}
+                    className={
+                      p === page
+                        ? "bg-violet-600 text-white hover:bg-violet-500"
+                        : "bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:bg-white/10"
+                    }
+                  >
+                    {p}
+                  </Button>
+                );
+              }
+              if (p === page - 2 || p === page + 2) {
+                return (
+                  <span key={p} className="px-1 text-zinc-500 text-xs">
+                    ...
+                  </span>
+                );
+              }
+              return null;
+            })}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page >= totalPages}
+            className="bg-white/5 border-white/10 text-white hover:bg-white/10 disabled:opacity-40"
+          >
+            Next
+          </Button>
         </div>
       )}
     </div>

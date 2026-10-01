@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const CreatorProfile = require("../models/CreatorProfile");
 const User = require("../models/User");
 const createCreatorProfile = async (req, res) => {
@@ -112,9 +113,37 @@ const getAllCreators = async (req, res) => {
             ];
         }
 
-        const creators = await CreatorProfile.find(filter);
-        console.log("Found creators:", creators.length);
-        res.status(200).json({ creators });
+        let page = parseInt(req.query.page, 10);
+        let limit = parseInt(req.query.limit, 10);
+
+        if (isNaN(page) || page < 1) {
+            page = 1;
+        }
+        if (isNaN(limit) || limit < 1) {
+            limit = 12;
+        }
+        if (limit > 50) {
+            limit = 50;
+        }
+
+        const skip = (page - 1) * limit;
+
+        const [total, creators] = await Promise.all([
+            CreatorProfile.countDocuments(filter),
+            CreatorProfile.find(filter).skip(skip).limit(limit),
+        ]);
+
+        console.log("Found creators:", creators.length, "Total:", total);
+        res.status(200).json({
+            creators,
+            data: creators,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit) || 1,
+            },
+        });
     }
     catch (error) {
         console.log(error);
@@ -123,6 +152,9 @@ const getAllCreators = async (req, res) => {
 }
 const getCreatorById = async (req, res) => {
     try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid creator ID" });
+        }
         const creator = await CreatorProfile.findById(req.params.id);
         if (!creator) {
             return res.status(404).json({ message: "Creator not found" })
@@ -131,6 +163,9 @@ const getCreatorById = async (req, res) => {
         res.status(200).json({ creator });
     }
     catch (error) {
+        if (error.name === "CastError") {
+            return res.status(400).json({ message: "Invalid creator ID" });
+        }
         console.log(error)
         res.status(500).json({ message: error.message })
     }

@@ -37,6 +37,21 @@ app.get('/', (req, res) => {
     res.send("API running");
 })
 
+// Central error handling middleware
+app.use((err, req, res, next) => {
+    if (err.name === "CastError") {
+        return res.status(400).json({ message: "Invalid resource identifier" });
+    }
+    if (err.name === "ValidationError") {
+        return res.status(400).json({ message: err.message });
+    }
+    if (err.code === 11000) {
+        return res.status(400).json({ message: "Duplicate resource already exists" });
+    }
+    console.error("Unhandled error:", err.message);
+    res.status(err.status || 500).json({ message: err.message || "Internal server error" });
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(">>> SERVER RESTARTED AT:", new Date().toLocaleTimeString());

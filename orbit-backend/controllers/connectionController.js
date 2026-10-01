@@ -1,3 +1,4 @@
+const mongoose = require("mongoose")
 const Connection = require("../models/Connection")
 const User = require("../models/User")
 const CreatorProfile = require("../models/CreatorProfile")
@@ -9,8 +10,8 @@ const sendRequest = async (req, res) => {
         const senderRole = req.user.role
         const { receiverId, message } = req.body
 
-        if (!receiverId) {
-            return res.status(400).json({ message: "Receiver ID is required" })
+        if (!receiverId || !mongoose.Types.ObjectId.isValid(receiverId)) {
+            return res.status(400).json({ message: "A valid receiver ID is required" })
         }
 
         if (senderId.toString() === receiverId.toString()) {
@@ -60,8 +61,14 @@ const sendRequest = async (req, res) => {
         res.status(201).json({ message: "Request sent", connection })
     }
     catch (error) {
-        console.log("send request error:", error)
-        res.status(500).json({ message: error.message })
+        if (error.code === 11000) {
+            return res.status(400).json({ message: "Connection request already exists" })
+        }
+        if (error.name === "CastError") {
+            return res.status(400).json({ message: "Invalid ID format" })
+        }
+        console.error("send request error:", error.message)
+        res.status(500).json({ message: "Failed to send connection request" })
     }
 }
 
@@ -70,19 +77,36 @@ const getReceivedRequests = async (req, res) => {
         const userId = req.user.userId
         const requests = await Connection.find({ receiverId: userId }).sort({ createdAt: -1 })
 
-        // get sender details for each request
-        const populated = []
+        const creatorSenderIds = []
+        const brandSenderIds = []
         for (let i = 0; i < requests.length; i++) {
             const req_item = requests[i]
-            let senderInfo = null
-
             if (req_item.senderRole === "creator") {
-                senderInfo = await CreatorProfile.findOne({ userId: req_item.senderId })
+                creatorSenderIds.push(req_item.senderId)
             } else {
-                senderInfo = await BrandProfile.findOne({ userId: req_item.senderId })
+                brandSenderIds.push(req_item.senderId)
             }
+        }
 
-            populated.push({
+        const [creatorProfiles, brandProfiles] = await Promise.all([
+            creatorSenderIds.length > 0
+                ? CreatorProfile.find({ userId: { $in: creatorSenderIds } })
+                : [],
+            brandSenderIds.length > 0
+                ? BrandProfile.find({ userId: { $in: brandSenderIds } })
+                : [],
+        ])
+
+        const creatorMap = new Map(creatorProfiles.map((p) => [p.userId.toString(), p]))
+        const brandMap = new Map(brandProfiles.map((p) => [p.userId.toString(), p]))
+
+        const populated = requests.map((req_item) => {
+            const senderInfo =
+                req_item.senderRole === "creator"
+                    ? creatorMap.get(req_item.senderId.toString())
+                    : brandMap.get(req_item.senderId.toString())
+
+            return {
                 _id: req_item._id,
                 senderId: req_item.senderId,
                 senderRole: req_item.senderRole,
@@ -93,8 +117,8 @@ const getReceivedRequests = async (req, res) => {
                 senderLocation: senderInfo?.location || "",
                 senderNiche: senderInfo?.niche || senderInfo?.preferredNiche || [],
                 senderProfileId: senderInfo?._id,
-            })
-        }
+            }
+        })
 
         console.log("Received requests:", populated.length)
         res.status(200).json({ requests: populated })
@@ -110,20 +134,44 @@ const getSentRequests = async (req, res) => {
         const userId = req.user.userId
         const requests = await Connection.find({ senderId: userId }).sort({ createdAt: -1 })
 
-        const populated = []
-        for (let i = 0; i < requests.length; i++) {
-            const req_item = requests[i]
-            let receiverInfo = null
+        const receiverIds = [...new Set(requests.map((r) => r.receiverId.toString()))]
 
-            // sender is current user, so receiver is the opposite role
-            const receiverUser = await User.findById(req_item.receiverId)
-            if (receiverUser?.role === "creator") {
-                receiverInfo = await CreatorProfile.findOne({ userId: req_item.receiverId })
-            } else {
-                receiverInfo = await BrandProfile.findOne({ userId: req_item.receiverId })
+        const receiverUsers = receiverIds.length > 0
+            ? await User.find({ _id: { $in: receiverIds } })
+            : []
+        const userMap = new Map(receiverUsers.map((u) => [u._id.toString(), u]))
+
+        const creatorReceiverIds = []
+        const brandReceiverIds = []
+        for (const rId of receiverIds) {
+            const user = userMap.get(rId)
+            if (user?.role === "creator") {
+                creatorReceiverIds.push(rId)
+            } else if (user?.role === "brand") {
+                brandReceiverIds.push(rId)
             }
+        }
 
-            populated.push({
+        const [creatorProfiles, brandProfiles] = await Promise.all([
+            creatorReceiverIds.length > 0
+                ? CreatorProfile.find({ userId: { $in: creatorReceiverIds } })
+                : [],
+            brandReceiverIds.length > 0
+                ? BrandProfile.find({ userId: { $in: brandReceiverIds } })
+                : [],
+        ])
+
+        const creatorMap = new Map(creatorProfiles.map((p) => [p.userId.toString(), p]))
+        const brandMap = new Map(brandProfiles.map((p) => [p.userId.toString(), p]))
+
+        const populated = requests.map((req_item) => {
+            const receiverUser = userMap.get(req_item.receiverId.toString())
+            const receiverInfo =
+                receiverUser?.role === "creator"
+                    ? creatorMap.get(req_item.receiverId.toString())
+                    : brandMap.get(req_item.receiverId.toString())
+
+            return {
                 _id: req_item._id,
                 receiverId: req_item.receiverId,
                 status: req_item.status,
@@ -133,8 +181,8 @@ const getSentRequests = async (req, res) => {
                 receiverLocation: receiverInfo?.location || "",
                 receiverRole: receiverUser?.role,
                 receiverProfileId: receiverInfo?._id,
-            })
-        }
+            }
+        })
 
         console.log("Sent requests:", populated.length)
         res.status(200).json({ requests: populated })
@@ -151,6 +199,10 @@ const updateRequest = async (req, res) => {
         const { id } = req.params
         const { status } = req.body
 
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid request ID" })
+        }
+
         if (status !== "accepted" && status !== "declined") {
             return res.status(400).json({ message: "Status must be accepted or declined" })
         }
@@ -161,8 +213,13 @@ const updateRequest = async (req, res) => {
         }
 
         // only receiver can accept/decline
-        if (connection.receiverId.toString() !== userId) {
-            return res.status(403).json({ message: "Not authorized" })
+        if (connection.receiverId.toString() !== userId.toString()) {
+            return res.status(403).json({ message: "Not authorized to update this request" })
+        }
+
+        // State integrity: only pending requests can be accepted or declined
+        if (connection.status !== "pending") {
+            return res.status(400).json({ message: `Request has already been ${connection.status}` })
         }
 
         connection.status = status
@@ -172,8 +229,11 @@ const updateRequest = async (req, res) => {
         res.status(200).json({ message: "Request " + status, connection })
     }
     catch (error) {
-        console.log("update request error:", error)
-        res.status(500).json({ message: error.message })
+        if (error.name === "CastError") {
+            return res.status(400).json({ message: "Invalid request ID" })
+        }
+        console.error("update request error:", error.message)
+        res.status(500).json({ message: "Failed to update request" })
     }
 }
 
@@ -197,6 +257,10 @@ const checkConnection = async (req, res) => {
         const userId = req.user.userId
         const { targetId } = req.params
 
+        if (!targetId || !mongoose.Types.ObjectId.isValid(targetId)) {
+            return res.status(400).json({ message: "Invalid target ID" })
+        }
+
         const connection = await Connection.findOne({
             $or: [
                 { senderId: userId, receiverId: targetId },
@@ -205,14 +269,17 @@ const checkConnection = async (req, res) => {
         })
 
         if (connection) {
-            res.status(200).json({ exists: true, status: connection.status, connectionId: connection._id, isSender: connection.senderId.toString() === userId })
+            res.status(200).json({ exists: true, status: connection.status, connectionId: connection._id, isSender: connection.senderId.toString() === userId.toString() })
         } else {
             res.status(200).json({ exists: false })
         }
     }
     catch (error) {
-        console.log(error)
-        res.status(500).json({ message: error.message })
+        if (error.name === "CastError") {
+            return res.status(400).json({ message: "Invalid target ID" })
+        }
+        console.error("check connection error:", error.message)
+        res.status(500).json({ message: "Failed to check connection" })
     }
 }
 
