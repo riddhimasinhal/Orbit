@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import axios from "axios";
+import api from "@/lib/api";
 import { toast } from "sonner";
 
 const CreatorSettings = () => {
@@ -27,13 +27,7 @@ const CreatorSettings = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "http://13.239.47.56:5001/api/creator/profile",
-          {
-            headers: { Authorization: token },
-          },
-        );
+        const res = await api.get("/creator/profile");
         const c = res.data.creator;
         setFormData({
           fullName: c.fullName || "",
@@ -62,14 +56,7 @@ const CreatorSettings = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        "http://13.239.47.56:5001/api/creator/onboarding",
-        formData,
-        {
-          headers: { Authorization: token },
-        },
-      );
+      await api.post("/creator/onboarding", formData);
       console.log("Settings saved");
       toast.success("Profile updated");
     } catch (error) {

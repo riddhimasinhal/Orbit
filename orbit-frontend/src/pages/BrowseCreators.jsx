@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "@/lib/api";
 import { Search, MapPin, AtSign, Play, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -33,8 +33,7 @@ const BrowseCreators = () => {
 
   const fetchCreators = async () => {
     try {
-      const token = localStorage.getItem("token");
-      let url = "http://13.239.47.56:5001/api/creator/all";
+      let endpoint = "/creator/all";
       const params = [];
       if (searchText.trim()) {
         params.push("search=" + searchText.trim());
@@ -43,12 +42,10 @@ const BrowseCreators = () => {
         params.push("niche=" + selectedNiche);
       }
       if (params.length > 0) {
-        url = url + "?" + params.join("&");
+        endpoint = endpoint + "?" + params.join("&");
       }
-      console.log("Fetching creators:", url);
-      const res = await axios.get(url, {
-        headers: { Authorization: token },
-      });
+      console.log("Fetching creators:", endpoint);
+      const res = await api.get(endpoint);
       setCreators(res.data.creators);
     } catch (error) {
       console.log("Failed to fetch creators", error);

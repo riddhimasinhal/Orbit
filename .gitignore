@@ -1,13 +1,24 @@
-frontend/node_modules/
-backend/node_modules/
+# Dependencies
+node_modules/
+orbit-frontend/node_modules/
+orbit-backend/node_modules/
 
-frontend/dist/
-backend/dist/
+# Production build artifacts
+dist/
+orbit-frontend/dist/
+orbit-backend/dist/
 
-frontend/.env
-backend/.env
-
+# Environment and secrets
 .env
+.env.*
+!.env.example
+orbit-frontend/.env
+orbit-frontend/.env.*
+!orbit-frontend/.env.example
+orbit-backend/.env
+orbit-backend/.env.*
+!orbit-backend/.env.example
 
+# Development and editor artifacts
 CLAUDE.md
-.claude/
+.claude/

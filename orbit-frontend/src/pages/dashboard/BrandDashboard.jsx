@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
+import api from "@/lib/api";
 import { Building, Globe, Target, Users } from "lucide-react";
 
 const BrandDashboard = () => {
@@ -10,13 +10,7 @@ const BrandDashboard = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://13.239.47.56:5001/api/brand/profile",
-          {
-            headers: { Authorization: token },
-          },
-        );
+        const response = await api.get("/brand/profile");
         console.log("Brand dashboard data:", response.data);
         setProfile(response.data.brand);
       } catch (error) {

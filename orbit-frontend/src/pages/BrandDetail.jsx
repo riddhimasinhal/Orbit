@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "@/lib/api";
 import {
   MapPin,
   Building,
@@ -28,23 +28,13 @@ const BrandDetail = () => {
   useEffect(() => {
     const fetchBrand = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "http://13.239.47.56:5001/api/brand/" + id,
-          {
-            headers: { Authorization: token },
-          },
-        );
+        const res = await api.get("/brand/" + id);
         console.log("Brand detail:", res.data);
         setBrand(res.data.brand);
 
         if (res.data.brand?.userId) {
-          const connRes = await axios.get(
-            "http://13.239.47.56:5001/api/connections/check/" +
-              res.data.brand.userId,
-            {
-              headers: { Authorization: token },
-            },
+          const connRes = await api.get(
+            "/connections/check/" + res.data.brand.userId,
           );
           console.log("Connection check:", connRes.data);
           if (connRes.data.exists) {
@@ -64,16 +54,9 @@ const BrandDetail = () => {
   const handleConnect = async () => {
     setSending(true);
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        "http://13.239.47.56:5001/api/connections/send",
-        {
-          receiverId: brand.userId,
-        },
-        {
-          headers: { Authorization: token },
-        },
-      );
+      await api.post("/connections/send", {
+        receiverId: brand.userId,
+      });
       setConnectionStatus("pending");
       toast.success("Request sent!");
       console.log("Connection request sent to", brand.companyName);

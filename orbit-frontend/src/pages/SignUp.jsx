@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
-import axios from "axios";
+import api from "@/lib/api";
 import { toast } from "sonner";
 
 export default function SignupForm() {
@@ -36,7 +36,7 @@ export default function SignupForm() {
 
     setLoading(true);
     try {
-      await axios.post("http://13.239.47.56:5001/api/auth/signup", {
+      await api.post("/auth/signup", {
         ...formData,
         role,
       });

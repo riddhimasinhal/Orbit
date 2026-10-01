@@ -13,6 +13,24 @@ const sendRequest = async (req, res) => {
             return res.status(400).json({ message: "Receiver ID is required" })
         }
 
+        if (senderId.toString() === receiverId.toString()) {
+            return res.status(400).json({ message: "Cannot send connection request to yourself" })
+        }
+
+        const receiverUser = await User.findById(receiverId)
+        if (!receiverUser) {
+            return res.status(404).json({ message: "Recipient user not found" })
+        }
+
+        const senderUser = await User.findById(senderId)
+        if (!senderUser) {
+            return res.status(404).json({ message: "Sender user not found" })
+        }
+
+        if (senderUser.role === receiverUser.role) {
+            return res.status(400).json({ message: "Connection requests can only be sent between a creator and a brand" })
+        }
+
         // check if already sent
         const existing = await Connection.findOne({
             senderId,
@@ -34,7 +52,7 @@ const sendRequest = async (req, res) => {
         const connection = await Connection.create({
             senderId,
             receiverId,
-            senderRole,
+            senderRole: senderUser.role,
             message: message || "",
         })
 

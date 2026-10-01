@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
+import api from "@/lib/api";
 import { Users, TrendingUp, Eye, AtSign } from "lucide-react";
 
 const formatNum = (num) => {
@@ -18,13 +18,7 @@ const CreatorDashboard = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://13.239.47.56:5001/api/creator/profile",
-          {
-            headers: { Authorization: token },
-          },
-        );
+        const response = await api.get("/creator/profile");
         console.log("Dashboard data:", response.data);
         setProfile(response.data.creator);
       } catch (error) {

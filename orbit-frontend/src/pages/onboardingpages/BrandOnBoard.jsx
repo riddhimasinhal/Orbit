@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles } from "lucide-react";
-import axios from "axios";
+import api from "@/lib/api";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -46,16 +46,11 @@ const BrandOnBoard = () => {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://13.239.47.56:5001/api/brand/profile",
-          {
-            headers: { Authorization: token },
-          },
-        );
+        const response = await api.get("/brand/profile");
 
         const { brand, onBoardingCompleted } = response.data;
         if (onBoardingCompleted) {
+          localStorage.setItem("onBoardingCompleted", "true");
           navigate("/brand/dashboard");
           return;
         }
@@ -92,16 +87,9 @@ const BrandOnBoard = () => {
 
   const handleSubmit = async () => {
     try {
-      const token = localStorage.getItem("token");
-      console.log("TOKEN SENT:", token);
-      const response = await axios.post(
-        "http://13.239.47.56:5001/api/brand/onboarding",
-        formData,
-        {
-          headers: { Authorization: token },
-        },
-      );
+      const response = await api.post("/brand/onboarding", formData);
       console.log(response.data);
+      localStorage.setItem("onBoardingCompleted", "true");
       navigate("/brand/dashboard");
     } catch (error) {
       console.log(error);
@@ -115,12 +103,10 @@ const BrandOnBoard = () => {
       return;
     }
     try {
-      const token = localStorage.getItem("token");
-      await axios.put(
-        "http://13.239.47.56:5001/api/brand/save-step",
-        { ...formData, currentStep: step + 1 },
-        { headers: { Authorization: token } },
-      );
+      await api.put("/brand/save-step", {
+        ...formData,
+        currentStep: step + 1,
+      });
       setStep(step + 1);
     } catch (error) {
       setError(error.response?.data?.message || "Failed to save, Try again.");

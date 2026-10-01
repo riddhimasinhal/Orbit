@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { NavUser } from "@/components/nav-user";
 import { NavMain } from "@/components/nav-main";
 import {
@@ -105,13 +105,7 @@ export function AppSidebar({ role = "creator", user, ...props }) {
   useEffect(() => {
     const fetchCount = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "http://13.239.47.56:5001/api/connections/count",
-          {
-            headers: { Authorization: token },
-          },
-        );
+        const res = await api.get("/connections/count");
         setPendingCount(res.data.count);
         console.log("Pending requests:", res.data.count);
       } catch (error) {

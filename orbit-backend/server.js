@@ -8,12 +8,17 @@ const brandRoutes = require("./routes/brandRoutes");
 const connectionRoutes = require("./routes/connectionRoutes");
 dotenv.config();
 
+if (!process.env.JWT_SECRET) {
+    console.error("FATAL ERROR: JWT_SECRET environment variable is not defined.");
+    process.exit(1);
+}
+
 connectDB();
 
 
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());

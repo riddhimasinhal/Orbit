@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import axios from "axios";
+import api from "@/lib/api";
 import { toast } from "sonner";
 
 const BrandSettings = () => {
@@ -31,13 +31,7 @@ const BrandSettings = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "http://13.239.47.56:5001/api/brand/profile",
-          {
-            headers: { Authorization: token },
-          },
-        );
+        const res = await api.get("/brand/profile");
         const b = res.data.brand;
         setFormData({
           companyName: b.companyName || "",
@@ -70,14 +64,7 @@ const BrandSettings = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        "http://13.239.47.56:5001/api/brand/onboarding",
-        formData,
-        {
-          headers: { Authorization: token },
-        },
-      );
+      await api.post("/brand/onboarding", formData);
       console.log("Brand settings saved");
       toast.success("Profile updated");
     } catch (error) {

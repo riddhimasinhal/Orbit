@@ -12,9 +12,12 @@ const authMiddleware = (req, res, next) => {
         }
         // remove Bearer if someone sends it that way
         const token = rawToken.startsWith("Bearer ") ? rawToken.slice(7) : rawToken;
-        const decoded = jwt.verify(token,
-            process.env.JWT_SECRET
-        );
+        if (!process.env.JWT_SECRET) {
+            return res.status(500).json({
+                message: "Server configuration error: JWT_SECRET is not defined",
+            });
+        }
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
         console.log("decoded", decoded)
         // console.log("Headers:", req.headers);
