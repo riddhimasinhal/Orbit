@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { Search, MapPin, AtSign, Play, Eye } from "lucide-react";
@@ -34,45 +34,65 @@ const BrowseCreators = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const fetchCreators = async (targetPage = page) => {
+  const [error, setError] = useState("");
+  const reqSeq = useRef(0);
+
+  const fetchCreators = async (targetPage = page, searchVal = searchText, nicheVal = selectedNiche) => {
+    const currentSeq = ++reqSeq.current;
+    setLoading(true);
+    setError("");
+
     try {
-      setLoading(true);
       let endpoint = `/creator/all?page=${targetPage}&limit=12`;
-      if (searchText.trim()) {
-        endpoint += "&search=" + encodeURIComponent(searchText.trim());
+      if (searchVal.trim()) {
+        endpoint += "&search=" + encodeURIComponent(searchVal.trim());
       }
-      if (selectedNiche) {
-        endpoint += "&niche=" + encodeURIComponent(selectedNiche);
+      if (nicheVal) {
+        endpoint += "&niche=" + encodeURIComponent(nicheVal);
       }
       console.log("Fetching creators:", endpoint);
       const res = await api.get(endpoint);
+
+      if (currentSeq !== reqSeq.current) return;
+
       setCreators(res.data.creators || res.data.data || []);
       if (res.data.pagination) {
         setPage(res.data.pagination.page);
         setTotalPages(res.data.pagination.totalPages);
       }
-    } catch (error) {
-      console.log("Failed to fetch creators", error);
+    } catch (err) {
+      if (currentSeq !== reqSeq.current) return;
+      console.log("Failed to fetch creators", err);
+      setError(err.response?.data?.message || "Failed to load creators. Please try again.");
     } finally {
-      setLoading(false);
+      if (currentSeq === reqSeq.current) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     setPage(1);
-    fetchCreators(1);
+    fetchCreators(1, searchText, selectedNiche);
   }, [selectedNiche]);
 
   const handleSearch = (e) => {
     e.preventDefault();
     setPage(1);
-    fetchCreators(1);
+    fetchCreators(1, searchText, selectedNiche);
+  };
+
+  const handleClearFilters = () => {
+    setSearchText("");
+    setSelectedNiche("");
+    setPage(1);
+    fetchCreators(1, "", "");
   };
 
   const handlePageChange = (newPage) => {
-    if (newPage < 1 || newPage > totalPages || newPage === page) return;
+    if (newPage < 1 || newPage > totalPages || newPage === page || loading) return;
     setPage(newPage);
-    fetchCreators(newPage);
+    fetchCreators(newPage, searchText, selectedNiche);
   };
 
   return (
@@ -127,12 +147,34 @@ const BrowseCreators = () => {
       {/* results */}
       {loading ? (
         <p className="text-zinc-400">Loading creators...</p>
+      ) : error ? (
+        <div className="text-center py-16 rounded-xl border border-red-500/20 bg-red-500/5 p-6">
+          <p className="text-red-400">{error}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchCreators(page, searchText, selectedNiche)}
+            className="mt-4 bg-white/5 border-white/10 text-white hover:bg-white/10"
+          >
+            Retry
+          </Button>
+        </div>
       ) : creators.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-zinc-500">No creators found.</p>
-          <p className="text-xs text-zinc-600 mt-1">
-            Try changing your search or filters.
+          <p className="text-zinc-400">No creators found.</p>
+          <p className="text-xs text-zinc-500 mt-1">
+            Try adjusting your search query or niche filters.
           </p>
+          {(searchText || selectedNiche) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearFilters}
+              className="mt-4 bg-white/5 border-white/10 text-violet-400 hover:text-violet-300 hover:bg-white/10"
+            >
+              Clear filters
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -20,6 +20,7 @@ import {
   Building2Icon,
   SearchIcon,
   InboxIcon,
+  MessageSquareIcon,
 } from "lucide-react";
 
 const sidebarConfig = {
@@ -51,6 +52,11 @@ const sidebarConfig = {
         title: "Requests",
         url: "/creator/requests",
         icon: <InboxIcon />,
+      },
+      {
+        title: "Messages",
+        url: "/creator/messages",
+        icon: <MessageSquareIcon />,
       },
       {
         title: "Account Settings",
@@ -89,6 +95,11 @@ const sidebarConfig = {
         icon: <InboxIcon />,
       },
       {
+        title: "Messages",
+        url: "/brand/messages",
+        icon: <MessageSquareIcon />,
+      },
+      {
         title: "Account Settings",
         url: "/brand/settings",
         icon: <Settings2Icon />,
@@ -108,7 +119,7 @@ export function AppSidebar({ role = "creator", user, ...props }) {
         const res = await api.get("/connections/count");
         setPendingCount(res.data.count);
         console.log("Pending requests:", res.data.count);
-      } catch (error) {
+      } catch {
         console.log("Failed to fetch count");
       }
     };

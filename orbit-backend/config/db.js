@@ -3,6 +3,7 @@ const connectDB = async () => {
     try {
         const mongoURI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/orbit";
         await mongoose.connect(mongoURI, {
+            dbName: "Orbit",
             serverSelectionTimeoutMS: 10000,
         });
         console.log("MongoDB connected successfully");

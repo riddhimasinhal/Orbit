@@ -1,16 +1,44 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
-import { Check, X, Send, Clock } from "lucide-react";
+import { Check, X, Clock, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 const Requests = () => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState("received");
   const [received, setReceived] = useState([]);
   const [sent, setSent] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [updatingId, setUpdatingId] = useState(null);
+  const [openingChatId, setOpeningChatId] = useState(null);
+
+  const handleStartChat = async (targetUserId) => {
+    if (!targetUserId || openingChatId) return;
+    setOpeningChatId(targetUserId);
+    try {
+      const res = await api.post("/conversations", { recipientId: targetUserId });
+      const convId = res.data.conversation?._id;
+      const isCreatorRoute = window.location.pathname.startsWith("/creator");
+      const prefix = isCreatorRoute ? "/creator" : "/brand";
+      if (convId) {
+        navigate(`${prefix}/messages/${convId}`);
+      } else {
+        navigate(`${prefix}/messages`);
+      }
+    } catch (err) {
+      console.log("Failed to start chat", err);
+      toast.error(err.response?.data?.message || "Failed to start conversation");
+    } finally {
+      setOpeningChatId(null);
+    }
+  };
 
   const fetchRequests = async () => {
     try {
+      setLoading(true);
+      setError("");
       const receivedRes = await api.get("/connections/received");
       const sentRes = await api.get("/connections/sent");
       console.log(
@@ -21,8 +49,9 @@ const Requests = () => {
       );
       setReceived(receivedRes.data.requests);
       setSent(sentRes.data.requests);
-    } catch (error) {
-      console.log("Failed to load requests", error);
+    } catch (err) {
+      console.log("Failed to load requests", err);
+      setError(err.response?.data?.message || "Failed to load requests");
     } finally {
       setLoading(false);
     }
@@ -33,19 +62,57 @@ const Requests = () => {
   }, []);
 
   const handleUpdate = async (id, status) => {
+    if (updatingId) return;
+    setUpdatingId(id);
     try {
       await api.put("/connections/" + id, { status });
       toast.success("Request " + status);
       console.log("Updated request", id, status);
-      // refresh the list
+      // Immediately reflect the updated status locally
+      setReceived((prev) =>
+        prev.map((r) => (r._id === id ? { ...r, status } : r)),
+      );
       fetchRequests();
-    } catch (error) {
-      console.log("Failed to update", error);
-      toast.error("Failed to update request");
+    } catch (err) {
+      console.log("Failed to update", err);
+      toast.error(err.response?.data?.message || "Failed to update request");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleOpenProfile = (profileId, role) => {
+    if (!profileId) return;
+    if (role === "creator") {
+      navigate("/brand/creator/" + profileId);
+    } else if (role === "brand") {
+      navigate("/creator/brand/" + profileId);
     }
   };
 
   if (loading) return <p className="text-zinc-400">Loading requests...</p>;
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-white">Requests</h1>
+          <p className="text-sm text-zinc-500 mt-1">
+            Manage your collaboration requests.
+          </p>
+        </div>
+        <div className="text-center py-16 rounded-xl border border-red-500/20 bg-red-500/5 p-6">
+          <p className="text-red-400">{error}</p>
+          <button
+            onClick={fetchRequests}
+            className="mt-4 rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-sm text-white hover:bg-white/10"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const pendingCount = received.filter((r) => r.status === "pending").length;
 
@@ -94,11 +161,17 @@ const Requests = () => {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-sm font-semibold text-violet-300">
+                    <div
+                      className={`flex size-10 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-sm font-semibold text-violet-300 ${req.senderProfileId ? "cursor-pointer hover:bg-violet-500/25" : ""}`}
+                      onClick={() => handleOpenProfile(req.senderProfileId, req.senderRole)}
+                    >
                       {req.senderName?.slice(0, 2).toUpperCase() || "??"}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-white">
+                      <p
+                        className={`text-sm font-medium text-white ${req.senderProfileId ? "cursor-pointer hover:underline hover:text-violet-300" : ""}`}
+                        onClick={() => handleOpenProfile(req.senderProfileId, req.senderRole)}
+                      >
                         {req.senderName}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -131,22 +204,36 @@ const Requests = () => {
                       <>
                         <button
                           onClick={() => handleUpdate(req._id, "accepted")}
-                          className="flex items-center gap-1.5 rounded-lg bg-green-600/20 border border-green-500/30 px-3 py-1.5 text-xs text-green-300 hover:bg-green-600/30"
+                          disabled={updatingId === req._id}
+                          className="flex items-center gap-1.5 rounded-lg bg-green-600/20 border border-green-500/30 px-3 py-1.5 text-xs text-green-300 hover:bg-green-600/30 disabled:opacity-50"
                         >
-                          <Check className="size-3.5" /> Accept
+                          <Check className="size-3.5" />
+                          {updatingId === req._id ? "Updating..." : "Accept"}
                         </button>
                         <button
                           onClick={() => handleUpdate(req._id, "declined")}
-                          className="flex items-center gap-1.5 rounded-lg bg-red-600/20 border border-red-500/30 px-3 py-1.5 text-xs text-red-300 hover:bg-red-600/30"
+                          disabled={updatingId === req._id}
+                          className="flex items-center gap-1.5 rounded-lg bg-red-600/20 border border-red-500/30 px-3 py-1.5 text-xs text-red-300 hover:bg-red-600/30 disabled:opacity-50"
                         >
-                          <X className="size-3.5" /> Decline
+                          <X className="size-3.5" />
+                          {updatingId === req._id ? "Updating..." : "Decline"}
                         </button>
                       </>
                     )}
                     {req.status === "accepted" && (
-                      <span className="flex items-center gap-1 text-xs text-green-400">
-                        <Check className="size-3.5" /> Accepted
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1 text-xs text-green-400">
+                          <Check className="size-3.5" /> Accepted
+                        </span>
+                        <button
+                          onClick={() => handleStartChat(req.senderId)}
+                          disabled={openingChatId === req.senderId}
+                          className="flex items-center gap-1.5 rounded-lg bg-violet-600/20 border border-violet-500/30 px-3 py-1.5 text-xs text-violet-300 hover:bg-violet-600/30 disabled:opacity-50 transition-colors"
+                        >
+                          <MessageSquare className="size-3.5" />
+                          {openingChatId === req.senderId ? "Opening..." : "Message"}
+                        </button>
+                      </div>
                     )}
                     {req.status === "declined" && (
                       <span className="flex items-center gap-1 text-xs text-red-400">
@@ -183,11 +270,17 @@ const Requests = () => {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-sm font-semibold text-violet-300">
+                    <div
+                      className={`flex size-10 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-sm font-semibold text-violet-300 ${req.receiverProfileId ? "cursor-pointer hover:bg-violet-500/25" : ""}`}
+                      onClick={() => handleOpenProfile(req.receiverProfileId, req.receiverRole)}
+                    >
                       {req.receiverName?.slice(0, 2).toUpperCase() || "??"}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-white">
+                      <p
+                        className={`text-sm font-medium text-white ${req.receiverProfileId ? "cursor-pointer hover:underline hover:text-violet-300" : ""}`}
+                        onClick={() => handleOpenProfile(req.receiverProfileId, req.receiverRole)}
+                      >
                         {req.receiverName}
                       </p>
                       <span className="text-xs text-violet-400">
@@ -208,9 +301,19 @@ const Requests = () => {
                       </span>
                     )}
                     {req.status === "accepted" && (
-                      <span className="flex items-center gap-1 text-xs text-green-400">
-                        <Check className="size-3.5" /> Accepted
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1 text-xs text-green-400">
+                          <Check className="size-3.5" /> Accepted
+                        </span>
+                        <button
+                          onClick={() => handleStartChat(req.receiverId)}
+                          disabled={openingChatId === req.receiverId}
+                          className="flex items-center gap-1.5 rounded-lg bg-violet-600/20 border border-violet-500/30 px-3 py-1.5 text-xs text-violet-300 hover:bg-violet-600/30 disabled:opacity-50 transition-colors"
+                        >
+                          <MessageSquare className="size-3.5" />
+                          {openingChatId === req.receiverId ? "Opening..." : "Message"}
+                        </button>
+                      </div>
                     )}
                     {req.status === "declined" && (
                       <span className="flex items-center gap-1 text-xs text-red-400">

@@ -71,7 +71,12 @@ const signup = async (req, res) => {
         // });
 
     } catch (error) {
-        console.log(error);
+        if (error.code === 11000) {
+            return res.status(400).json({
+                message: "User with this email already exists",
+            });
+        }
+        console.error("Signup error:", error.message);
         res.status(500).json({
             message: error.message || "Something went wrong",
         });
