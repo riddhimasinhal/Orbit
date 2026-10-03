@@ -6,14 +6,13 @@ const authRoutes = require("./routes/authRoutes");
 const creatorRoutes = require("./routes/creatorRoutes");
 const brandRoutes = require("./routes/brandRoutes");
 const connectionRoutes = require("./routes/connectionRoutes");
+const conversationRoutes = require("./routes/conversationRoutes");
 dotenv.config();
 
 if (!process.env.JWT_SECRET) {
     console.error("FATAL ERROR: JWT_SECRET environment variable is not defined.");
     process.exit(1);
 }
-
-connectDB();
 
 
 
@@ -32,6 +31,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/creator", creatorRoutes);
 app.use("/api/brand", brandRoutes);
 app.use("/api/connections", connectionRoutes);
+app.use("/api/conversations", conversationRoutes);
 
 app.get('/', (req, res) => {
     res.send("API running");
@@ -52,8 +52,18 @@ app.use((err, req, res, next) => {
     res.status(err.status || 500).json({ message: err.message || "Internal server error" });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(">>> SERVER RESTARTED AT:", new Date().toLocaleTimeString());
-})
+const startServer = async () => {
+    try {
+        await connectDB();
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+            console.log(">>> SERVER RESTARTED AT:", new Date().toLocaleTimeString());
+        });
+    } catch (error) {
+        console.error("Server startup failed:", error.message);
+        process.exit(1);
+    }
+};
+
+startServer();
 

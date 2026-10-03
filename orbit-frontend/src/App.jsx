@@ -23,6 +23,7 @@ import BrowseBrands from "./pages/BrowseBrands"
 import CreatorDetail from "./pages/CreatorDetail"
 import BrandDetail from "./pages/BrandDetail"
 import Requests from "./pages/Requests"
+import Messages from "./pages/Messages"
 
 function App() {
   return (
@@ -58,6 +59,8 @@ function App() {
           <Route path="browse" element={<BrowseBrands />} />
           <Route path="brand/:id" element={<BrandDetail />} />
           <Route path="requests" element={<Requests />} />
+          <Route path="messages" element={<Messages />} />
+          <Route path="messages/:conversationId" element={<Messages />} />
         </Route>
 
         <Route
@@ -75,6 +78,8 @@ function App() {
           <Route path="browse" element={<BrowseCreators />} />
           <Route path="creator/:id" element={<CreatorDetail />} />
           <Route path="requests" element={<Requests />} />
+          <Route path="messages" element={<Messages />} />
+          <Route path="messages/:conversationId" element={<Messages />} />
         </Route>
 
         <Route path="/creator-dashboard" element={<Navigate to="/creator/dashboard" replace />} />

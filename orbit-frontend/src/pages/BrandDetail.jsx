@@ -13,6 +13,8 @@ import {
   Send,
   Check,
   X,
+  Clock,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,41 +25,59 @@ const BrandDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [connectionStatus, setConnectionStatus] = useState(null);
+  const [isSender, setIsSender] = useState(false);
   const [sending, setSending] = useState(false);
+  const [startingChat, setStartingChat] = useState(false);
 
   useEffect(() => {
+    let active = true;
     const fetchBrand = async () => {
       try {
+        setLoading(true);
+        setError("");
         const res = await api.get("/brand/" + id);
-        console.log("Brand detail:", res.data);
+        if (!active) return;
         setBrand(res.data.brand);
 
         if (res.data.brand?.userId) {
           const connRes = await api.get(
             "/connections/check/" + res.data.brand.userId,
           );
+          if (!active) return;
           console.log("Connection check:", connRes.data);
           if (connRes.data.exists) {
             setConnectionStatus(connRes.data.status);
+            setIsSender(Boolean(connRes.data.isSender));
+          } else {
+            setConnectionStatus(null);
+            setIsSender(false);
           }
         }
-      } catch (error) {
-        console.log("Failed to load brand", error);
-        setError("Brand not found");
+      } catch (err) {
+        if (!active) return;
+        console.log("Failed to load brand", err);
+        setError(err.response?.data?.message || "Brand not found");
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
     fetchBrand();
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   const handleConnect = async () => {
+    if (sending || connectionStatus || !brand?.userId) return;
     setSending(true);
     try {
       await api.post("/connections/send", {
         receiverId: brand.userId,
       });
       setConnectionStatus("pending");
+      setIsSender(true);
       toast.success("Request sent!");
       console.log("Connection request sent to", brand.companyName);
     } catch (error) {
@@ -65,6 +85,27 @@ const BrandDetail = () => {
       toast.error(error.response?.data?.message || "Failed to send request");
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleStartChat = async () => {
+    if (!brand?.userId || startingChat) return;
+    setStartingChat(true);
+    try {
+      const res = await api.post("/conversations", {
+        recipientId: brand.userId,
+      });
+      const convId = res.data.conversation?._id;
+      if (convId) {
+        navigate(`/creator/messages/${convId}`);
+      } else {
+        navigate("/creator/messages");
+      }
+    } catch (error) {
+      console.log("Failed to start chat", error);
+      toast.error(error.response?.data?.message || "Failed to start conversation");
+    } finally {
+      setStartingChat(false);
     }
   };
 
@@ -148,13 +189,24 @@ const BrandDetail = () => {
           )}
           {connectionStatus === "pending" && (
             <span className="flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-300">
-              <Send className="size-4" /> Request Pending
+              <Clock className="size-4" />
+              {isSender ? "Request Pending" : "Request Received (Check Requests)"}
             </span>
           )}
           {connectionStatus === "accepted" && (
-            <span className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300">
-              <Check className="size-4" /> Connected
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm text-green-300">
+                <Check className="size-4" /> Connected
+              </span>
+              <button
+                onClick={handleStartChat}
+                disabled={startingChat}
+                className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50 transition-colors"
+              >
+                <MessageSquare className="size-4" />
+                {startingChat ? "Opening..." : "Message"}
+              </button>
+            </div>
           )}
           {connectionStatus === "declined" && (
             <span className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">
