@@ -21,6 +21,7 @@ import {
   SearchIcon,
   InboxIcon,
   MessageSquareIcon,
+  MegaphoneIcon,
 } from "lucide-react";
 
 const sidebarConfig = {
@@ -47,6 +48,11 @@ const sidebarConfig = {
         title: "Browse Brands",
         url: "/creator/browse",
         icon: <SearchIcon />,
+      },
+      {
+        title: "Campaigns",
+        url: "/creator/campaigns",
+        icon: <MegaphoneIcon />,
       },
       {
         title: "Requests",
@@ -88,6 +94,11 @@ const sidebarConfig = {
         title: "Browse Creators",
         url: "/brand/browse",
         icon: <SearchIcon />,
+      },
+      {
+        title: "Campaigns",
+        url: "/brand/campaigns",
+        icon: <MegaphoneIcon />,
       },
       {
         title: "Requests",

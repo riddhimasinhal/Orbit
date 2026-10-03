@@ -7,6 +7,7 @@ const creatorRoutes = require("./routes/creatorRoutes");
 const brandRoutes = require("./routes/brandRoutes");
 const connectionRoutes = require("./routes/connectionRoutes");
 const conversationRoutes = require("./routes/conversationRoutes");
+const campaignRoutes = require("./routes/campaignRoutes");
 dotenv.config();
 
 if (!process.env.JWT_SECRET) {
@@ -32,6 +33,7 @@ app.use("/api/creator", creatorRoutes);
 app.use("/api/brand", brandRoutes);
 app.use("/api/connections", connectionRoutes);
 app.use("/api/conversations", conversationRoutes);
+app.use("/api/campaigns", campaignRoutes);
 
 app.get('/', (req, res) => {
     res.send("API running");

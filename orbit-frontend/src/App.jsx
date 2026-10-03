@@ -24,6 +24,11 @@ import CreatorDetail from "./pages/CreatorDetail"
 import BrandDetail from "./pages/BrandDetail"
 import Requests from "./pages/Requests"
 import Messages from "./pages/Messages"
+import BrowseCampaigns from "./pages/campaigns/BrowseCampaigns"
+import CampaignDetail from "./pages/campaigns/CampaignDetail"
+import BrandCampaigns from "./pages/campaigns/BrandCampaigns"
+import CreateCampaign from "./pages/campaigns/CreateCampaign"
+import BrandCampaignDetail from "./pages/campaigns/BrandCampaignDetail"
 
 function App() {
   return (
@@ -57,6 +62,8 @@ function App() {
           <Route path="profile" element={<CreatorProfile />} />
           <Route path="settings" element={<CreatorSettings />} />
           <Route path="browse" element={<BrowseBrands />} />
+          <Route path="campaigns" element={<BrowseCampaigns />} />
+          <Route path="campaigns/:campaignId" element={<CampaignDetail />} />
           <Route path="brand/:id" element={<BrandDetail />} />
           <Route path="requests" element={<Requests />} />
           <Route path="messages" element={<Messages />} />
@@ -76,6 +83,9 @@ function App() {
           <Route path="profile" element={<BrandProfile />} />
           <Route path="settings" element={<BrandSettings />} />
           <Route path="browse" element={<BrowseCreators />} />
+          <Route path="campaigns" element={<BrandCampaigns />} />
+          <Route path="campaigns/new" element={<CreateCampaign />} />
+          <Route path="campaigns/:campaignId" element={<BrandCampaignDetail />} />
           <Route path="creator/:id" element={<CreatorDetail />} />
           <Route path="requests" element={<Requests />} />
           <Route path="messages" element={<Messages />} />
