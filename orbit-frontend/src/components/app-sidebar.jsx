@@ -24,6 +24,7 @@ import {
   MegaphoneIcon,
   FileTextIcon,
   HandshakeIcon,
+  FolderOpenIcon,
 } from "lucide-react";
 
 const sidebarConfig = {
@@ -45,6 +46,11 @@ const sidebarConfig = {
         title: "My Profile",
         url: "/creator/profile",
         icon: <UserIcon />,
+      },
+      {
+        title: "Portfolio",
+        url: "/creator/portfolio",
+        icon: <FolderOpenIcon />,
       },
       {
         title: "Browse Brands",
