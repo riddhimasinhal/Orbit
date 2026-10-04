@@ -39,6 +39,11 @@ const portfolioItemSchema = new mongoose.Schema(
             trim: true,
             default: "",
         },
+        cloudinaryPublicId: {
+            type: String,
+            trim: true,
+            default: "",
+        },
     },
     { timestamps: true }
 );

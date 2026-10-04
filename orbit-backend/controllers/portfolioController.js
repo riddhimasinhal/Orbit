@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 const PortfolioItem = require("../models/PortfolioItem");
 const User = require("../models/User");
 const CreatorProfile = require("../models/CreatorProfile");
+const {
+    isCloudinaryConfigured,
+    uploadToCloudinary,
+    deleteFromCloudinary,
+} = require("../config/cloudinary");
 
 /**
  * Helper to validate http/https URLs
@@ -45,6 +50,75 @@ const inferMediaType = (urlStr) => {
         return "video";
     }
     return "link";
+};
+
+/**
+ * POST /api/portfolio/upload
+ * Authenticated creator uploads an image or video file to Cloudinary
+ */
+const uploadPortfolioMedia = async (req, res) => {
+    try {
+        const creatorId = req.user.userId || req.user._id;
+
+        // Validate that a file was uploaded by multer
+        if (!req.file) {
+            return res.status(400).json({
+                message: "No media file uploaded. Please attach a valid image or video.",
+            });
+        }
+
+        const isImage = req.file.mimetype.startsWith("image/");
+        const isVideo = req.file.mimetype.startsWith("video/");
+
+        if (!isImage && !isVideo) {
+            return res.status(400).json({
+                message: "Unsupported media format. Allowed formats: JPEG, PNG, WebP for images; MP4, WebM for videos.",
+            });
+        }
+
+        // Enforce strict size limits
+        // Images: max 10MB (10 * 1024 * 1024 bytes)
+        if (isImage && req.file.size > 10 * 1024 * 1024) {
+            return res.status(400).json({
+                message: "Image file size exceeds maximum limit of 10MB",
+            });
+        }
+
+        // Videos: max 100MB (100 * 1024 * 1024 bytes)
+        if (isVideo && req.file.size > 100 * 1024 * 1024) {
+            return res.status(400).json({
+                message: "Video file size exceeds maximum limit of 100MB",
+            });
+        }
+
+        // Verify server-side Cloudinary configuration before upload
+        if (!isCloudinaryConfigured()) {
+            return res.status(503).json({
+                message: "Cloudinary upload service is not configured on the server",
+            });
+        }
+
+        const resourceType = isVideo ? "video" : "image";
+        // Cloudinary folder is strictly derived from authenticated JWT creator ID
+        const folder = `orbit/portfolio/${creatorId}`;
+
+        const uploadResult = await uploadToCloudinary(req.file.buffer, {
+            folder,
+            resource_type: resourceType,
+        });
+
+        res.status(200).json({
+            success: true,
+            mediaUrl: uploadResult.secure_url,
+            cloudinaryPublicId: uploadResult.public_id,
+            mediaType: resourceType,
+        });
+    } catch (error) {
+        console.error("uploadPortfolioMedia error:", error.message);
+        res.status(500).json({
+            message: "Failed to upload media to Cloudinary",
+        });
+    }
 };
 
 /**
@@ -115,9 +189,18 @@ const getCreatorPortfolio = async (req, res) => {
  * Authenticated creator creates a new portfolio item
  */
 const createPortfolioItem = async (req, res) => {
+    const {
+        title,
+        description,
+        mediaUrl,
+        mediaType,
+        thumbnailUrl,
+        projectUrl,
+        cloudinaryPublicId,
+    } = req.body;
+
     try {
         const creatorId = req.user.userId || req.user._id;
-        const { title, description, mediaUrl, mediaType, thumbnailUrl, projectUrl } = req.body;
 
         // Title validation
         if (!title || typeof title !== "string" || !title.trim()) {
@@ -171,6 +254,7 @@ const createPortfolioItem = async (req, res) => {
             mediaType: resolvedMediaType || "link",
             thumbnailUrl: thumbnailUrl ? thumbnailUrl.trim() : "",
             projectUrl: projectUrl ? projectUrl.trim() : "",
+            cloudinaryPublicId: cloudinaryPublicId ? cloudinaryPublicId.trim() : "",
         });
 
         res.status(201).json({
@@ -180,6 +264,13 @@ const createPortfolioItem = async (req, res) => {
         });
     } catch (error) {
         console.error("createPortfolioItem error:", error.message);
+
+        // Consistency check: Clean up newly uploaded Cloudinary asset if MongoDB save fails
+        if (cloudinaryPublicId) {
+            const resType = mediaType === "video" ? "video" : "image";
+            await deleteFromCloudinary(cloudinaryPublicId, resType);
+        }
+
         res.status(500).json({ message: "Failed to create portfolio item" });
     }
 };
@@ -209,7 +300,15 @@ const updatePortfolioItem = async (req, res) => {
             });
         }
 
-        const { title, description, mediaUrl, mediaType, thumbnailUrl, projectUrl } = req.body;
+        const {
+            title,
+            description,
+            mediaUrl,
+            mediaType,
+            thumbnailUrl,
+            projectUrl,
+            cloudinaryPublicId,
+        } = req.body;
 
         // Title validation
         if (title !== undefined) {
@@ -275,6 +374,19 @@ const updatePortfolioItem = async (req, res) => {
             }
         }
 
+        // If replacement media was uploaded, delete old Cloudinary asset
+        const oldPublicId = item.cloudinaryPublicId;
+        if (
+            cloudinaryPublicId !== undefined &&
+            cloudinaryPublicId.trim() !== (oldPublicId || "")
+        ) {
+            if (oldPublicId) {
+                const oldResourceType = item.mediaType === "video" ? "video" : "image";
+                await deleteFromCloudinary(oldPublicId, oldResourceType);
+            }
+            item.cloudinaryPublicId = cloudinaryPublicId.trim();
+        }
+
         await item.save();
 
         res.status(200).json({
@@ -290,7 +402,7 @@ const updatePortfolioItem = async (req, res) => {
 
 /**
  * DELETE /api/portfolio/:portfolioItemId
- * Authenticated creator deletes their own portfolio item
+ * Authenticated creator deletes their own portfolio item, and cleans up Cloudinary media if present
  */
 const deletePortfolioItem = async (req, res) => {
     try {
@@ -313,6 +425,12 @@ const deletePortfolioItem = async (req, res) => {
             });
         }
 
+        // Clean up Cloudinary asset if item has a stored public ID
+        if (item.cloudinaryPublicId) {
+            const resourceType = item.mediaType === "video" ? "video" : "image";
+            await deleteFromCloudinary(item.cloudinaryPublicId, resourceType);
+        }
+
         await PortfolioItem.findByIdAndDelete(portfolioItemId);
 
         res.status(200).json({
@@ -331,4 +449,5 @@ module.exports = {
     createPortfolioItem,
     updatePortfolioItem,
     deletePortfolioItem,
+    uploadPortfolioMedia,
 };

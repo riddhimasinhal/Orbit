@@ -10,7 +10,6 @@ import {
   FolderOpen,
   ExternalLink,
   ArrowRight,
-  Video,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -164,22 +163,13 @@ const CreatorProfile = () => {
                       }}
                     />
                   ) : item.mediaUrl && item.mediaType === "video" ? (
-                    item.thumbnailUrl ? (
-                      <div className="relative w-full h-full">
-                        <img
-                          src={item.thumbnailUrl}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <div className="size-9 rounded-full bg-violet-600/80 text-white flex items-center justify-center">
-                            <Video className="size-4" />
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <Video className="size-8 text-violet-400/80" />
-                    )
+                    <video
+                      src={item.mediaUrl}
+                      poster={item.thumbnailUrl || undefined}
+                      controls
+                      preload="metadata"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <Link2 className="size-8 text-violet-400/80" />
                   )}
