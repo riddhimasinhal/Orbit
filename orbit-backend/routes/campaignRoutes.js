@@ -13,6 +13,12 @@ const {
     getAllPublishedCampaigns,
 } = require("../controllers/campaignController");
 
+const {
+    applyToCampaign,
+    getCampaignApplications,
+    checkMyApplication,
+} = require("../controllers/applicationController");
+
 // Brand-specific campaign operations
 router.post("/", authMiddleware, requireRole("brand"), createCampaign);
 router.get("/mine", authMiddleware, requireRole("brand"), getMyCampaigns);
@@ -25,5 +31,10 @@ router.get("/:campaignId", authMiddleware, getCampaignById);
 router.put("/:campaignId", authMiddleware, requireRole("brand"), updateCampaign);
 router.patch("/:campaignId/publish", authMiddleware, requireRole("brand"), publishCampaign);
 router.patch("/:campaignId/close", authMiddleware, requireRole("brand"), closeCampaign);
+
+// Campaign Applications
+router.post("/:campaignId/applications", authMiddleware, requireRole("creator"), applyToCampaign);
+router.get("/:campaignId/applications", authMiddleware, requireRole("brand"), getCampaignApplications);
+router.get("/:campaignId/my-application", authMiddleware, requireRole("creator"), checkMyApplication);
 
 module.exports = router;

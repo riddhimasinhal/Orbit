@@ -22,6 +22,8 @@ import {
   InboxIcon,
   MessageSquareIcon,
   MegaphoneIcon,
+  FileTextIcon,
+  HandshakeIcon,
 } from "lucide-react";
 
 const sidebarConfig = {
@@ -53,6 +55,16 @@ const sidebarConfig = {
         title: "Campaigns",
         url: "/creator/campaigns",
         icon: <MegaphoneIcon />,
+      },
+      {
+        title: "My Applications",
+        url: "/creator/applications",
+        icon: <FileTextIcon />,
+      },
+      {
+        title: "Collaborations",
+        url: "/creator/collaborations",
+        icon: <HandshakeIcon />,
       },
       {
         title: "Requests",
@@ -99,6 +111,11 @@ const sidebarConfig = {
         title: "Campaigns",
         url: "/brand/campaigns",
         icon: <MegaphoneIcon />,
+      },
+      {
+        title: "Collaborations",
+        url: "/brand/collaborations",
+        icon: <HandshakeIcon />,
       },
       {
         title: "Requests",
