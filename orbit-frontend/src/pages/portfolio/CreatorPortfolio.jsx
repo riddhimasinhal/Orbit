@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import api from "@/lib/api";
 import {
   FolderOpen,
@@ -12,7 +12,9 @@ import {
   Loader2,
   AlertCircle,
   Sparkles,
-  Info,
+  UploadCloud,
+  FileCheck,
+  Cloud,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +28,14 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "video/mp4",
+  "video/webm",
+];
+
 export default function CreatorPortfolio() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,14 +44,22 @@ export default function CreatorPortfolio() {
   // Modal / Form state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [mediaSource, setMediaSource] = useState("upload"); // "upload" | "url"
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [mediaType, setMediaType] = useState("image");
   const [mediaUrl, setMediaUrl] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [projectUrl, setProjectUrl] = useState("");
+  const [cloudinaryPublicId, setCloudinaryPublicId] = useState("");
+
+  // Upload file state
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [savingStep, setSavingStep] = useState("");
   const [formError, setFormError] = useState("");
+  const fileInputRef = useRef(null);
 
   // Delete state
   const [deletingId, setDeletingId] = useState(null);
@@ -85,26 +103,91 @@ export default function CreatorPortfolio() {
 
   const openCreateDialog = () => {
     setEditingItem(null);
+    setMediaSource("upload");
     setTitle("");
     setDescription("");
     setMediaType("image");
     setMediaUrl("");
     setThumbnailUrl("");
     setProjectUrl("");
+    setCloudinaryPublicId("");
+    setSelectedFile(null);
+    setFilePreview(null);
     setFormError("");
+    setSavingStep("");
     setIsDialogOpen(true);
   };
 
   const openEditDialog = (item) => {
     setEditingItem(item);
+    // If item has cloudinaryPublicId or no projectUrl, default to upload source if modifying
+    setMediaSource(item.cloudinaryPublicId ? "upload" : "url");
     setTitle(item.title || "");
     setDescription(item.description || "");
     setMediaType(item.mediaType || "image");
     setMediaUrl(item.mediaUrl || "");
     setThumbnailUrl(item.thumbnailUrl || "");
     setProjectUrl(item.projectUrl || "");
+    setCloudinaryPublicId(item.cloudinaryPublicId || "");
+    setSelectedFile(null);
+    setFilePreview(null);
     setFormError("");
+    setSavingStep("");
     setIsDialogOpen(true);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check MIME type
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      setFormError(
+        "Unsupported file type. Allowed formats: JPEG, PNG, WebP images; MP4, WebM videos."
+      );
+      setSelectedFile(null);
+      setFilePreview(null);
+      return;
+    }
+
+    const isImg = file.type.startsWith("image/");
+    const isVid = file.type.startsWith("video/");
+
+    // Check size limit: 10MB for image, 100MB for video
+    const maxImgSize = 10 * 1024 * 1024;
+    const maxVidSize = 100 * 1024 * 1024;
+
+    if (isImg && file.size > maxImgSize) {
+      setFormError("Image size cannot exceed 10MB.");
+      setSelectedFile(null);
+      setFilePreview(null);
+      return;
+    }
+
+    if (isVid && file.size > maxVidSize) {
+      setFormError("Video size cannot exceed 100MB.");
+      setSelectedFile(null);
+      setFilePreview(null);
+      return;
+    }
+
+    setFormError("");
+    setSelectedFile(file);
+    setMediaType(isVid ? "video" : "image");
+
+    // Generate local preview URL
+    try {
+      const preview = URL.createObjectURL(file);
+      setFilePreview(preview);
+    } catch {
+      setFilePreview(null);
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return "";
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const handleSave = async (e) => {
@@ -126,13 +209,38 @@ export default function CreatorPortfolio() {
 
     try {
       setSaving(true);
+
+      let finalMediaUrl = mediaUrl.trim();
+      let finalMediaType = mediaType;
+      let finalCloudinaryPublicId = cloudinaryPublicId;
+
+      // If uploading a new file via Cloudinary
+      if (mediaSource === "upload" && selectedFile) {
+        setSavingStep("Uploading media to Cloudinary...");
+        const formData = new FormData();
+        formData.append("media", selectedFile);
+
+        const uploadRes = await api.post("/portfolio/upload", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        finalMediaUrl = uploadRes.data.mediaUrl;
+        finalCloudinaryPublicId = uploadRes.data.cloudinaryPublicId;
+        finalMediaType = uploadRes.data.mediaType;
+      }
+
+      setSavingStep("Saving portfolio details...");
+
       const payload = {
         title: title.trim(),
         description: description.trim(),
-        mediaType,
-        mediaUrl: mediaUrl.trim(),
+        mediaType: finalMediaType,
+        mediaUrl: finalMediaUrl,
         thumbnailUrl: thumbnailUrl.trim(),
         projectUrl: projectUrl.trim(),
+        cloudinaryPublicId: finalCloudinaryPublicId,
       };
 
       if (editingItem) {
@@ -157,6 +265,7 @@ export default function CreatorPortfolio() {
       toast.error(msg);
     } finally {
       setSaving(false);
+      setSavingStep("");
     }
   };
 
@@ -209,13 +318,13 @@ export default function CreatorPortfolio() {
         </Button>
       </div>
 
-      {/* Cloud Storage Notice */}
+      {/* Cloudinary Integration Badge */}
       <div className="rounded-xl border border-violet-500/20 bg-violet-950/20 px-4 py-3 text-xs text-violet-300 flex items-start gap-2.5">
-        <Info className="size-4 shrink-0 mt-0.5 text-violet-400" />
+        <Cloud className="size-4 shrink-0 mt-0.5 text-violet-400" />
         <div className="space-y-0.5">
-          <p className="font-medium text-white">Media Links & Showcase</p>
+          <p className="font-medium text-white">Cloudinary-Powered Media Storage</p>
           <p className="text-zinc-400 leading-relaxed">
-            You can showcase your work by linking direct image/video URLs or external project pages (YouTube, Instagram, Behance, website). Direct binary uploads will be enabled once cloud media storage is provisioned.
+            Upload your high-res photos (up to 10MB) and demo reels (up to 100MB) directly to Cloudinary, or link external showcase projects.
           </p>
         </div>
       </div>
@@ -282,25 +391,13 @@ export default function CreatorPortfolio() {
                       }}
                     />
                   ) : hasMedia && isVideo ? (
-                    item.thumbnailUrl ? (
-                      <div className="relative w-full h-full">
-                        <img
-                          src={item.thumbnailUrl}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <div className="size-10 rounded-full bg-violet-600/80 text-white flex items-center justify-center">
-                            <Video className="size-5" />
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-zinc-500 space-y-1">
-                        <Video className="size-8 text-violet-400/80" />
-                        <span className="text-[11px] text-zinc-400">Video Content</span>
-                      </div>
-                    )
+                    <video
+                      src={item.mediaUrl}
+                      poster={item.thumbnailUrl || undefined}
+                      controls
+                      preload="metadata"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <div className="flex flex-col items-center justify-center text-zinc-500 space-y-1">
                       <Link2 className="size-8 text-violet-400/80" />
@@ -309,7 +406,7 @@ export default function CreatorPortfolio() {
                   )}
 
                   {/* Media Type Badge Overlay */}
-                  <div className="absolute top-2.5 right-2.5">
+                  <div className="absolute top-2.5 right-2.5 pointer-events-none">
                     <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-black/60 backdrop-blur-md text-white border border-white/10 flex items-center gap-1">
                       {isImage ? (
                         <>
@@ -421,51 +518,146 @@ export default function CreatorPortfolio() {
               <p className="text-[10px] text-zinc-500 text-right">{title.length} / 120</p>
             </div>
 
-            {/* Media Type Selector */}
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-zinc-300">Type</label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: "image", label: "Image", icon: Image },
-                  { value: "video", label: "Video", icon: Video },
-                  { value: "link", label: "Project Link", icon: Link2 },
-                ].map((t) => {
-                  const Icon = t.icon;
-                  const isSelected = mediaType === t.value;
-                  return (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => setMediaType(t.value)}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-medium border transition-colors ${
-                        isSelected
-                          ? "bg-violet-600 text-white border-violet-500"
-                          : "bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white hover:bg-white/[0.06]"
-                      }`}
-                    >
-                      <Icon className="size-3.5" />
-                      {t.label}
-                    </button>
-                  );
-                })}
+            {/* Media Source Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-300">Media Source</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMediaSource("upload")}
+                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-medium border transition-colors ${
+                    mediaSource === "upload"
+                      ? "bg-violet-600 text-white border-violet-500"
+                      : "bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <UploadCloud className="size-4" />
+                  Upload Image/Video
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMediaSource("url")}
+                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-medium border transition-colors ${
+                    mediaSource === "url"
+                      ? "bg-violet-600 text-white border-violet-500"
+                      : "bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <Link2 className="size-4" />
+                  External URL
+                </button>
               </div>
             </div>
 
-            {/* Media URL */}
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-zinc-300">
-                Media URL (Image / Video URL)
-              </label>
-              <Input
-                value={mediaUrl}
-                onChange={(e) => setMediaUrl(e.target.value)}
-                placeholder="https://images.unsplash.com/... or https://..."
-                className="bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-600 focus-visible:ring-violet-500 text-xs h-9"
-              />
-              <p className="text-[10px] text-zinc-500">
-                Direct image or video URL showcasing your work
-              </p>
-            </div>
+            {/* Upload Area */}
+            {mediaSource === "upload" ? (
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-zinc-300">Media File</label>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept={ALLOWED_MIME_TYPES.join(",")}
+                  className="hidden"
+                />
+
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-xl border border-dashed border-white/20 bg-white/[0.02] hover:bg-white/[0.04] p-4 text-center cursor-pointer transition-colors space-y-2"
+                >
+                  {selectedFile ? (
+                    <div className="space-y-2">
+                      {filePreview && (
+                        <div className="max-h-36 rounded-lg overflow-hidden flex items-center justify-center bg-black/40">
+                          {selectedFile.type.startsWith("image/") ? (
+                            <img
+                              src={filePreview}
+                              alt="Preview"
+                              className="max-h-36 object-contain"
+                            />
+                          ) : (
+                            <video
+                              src={filePreview}
+                              className="max-h-36 object-contain"
+                              muted
+                              autoPlay
+                              loop
+                            />
+                          )}
+                        </div>
+                      )}
+                      <div className="flex items-center justify-center gap-2 text-xs text-emerald-400">
+                        <FileCheck className="size-4 shrink-0" />
+                        <span className="font-medium truncate max-w-[200px]">
+                          {selectedFile.name}
+                        </span>
+                        <span className="text-zinc-500">
+                          ({formatFileSize(selectedFile.size)})
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400">Click to change file</p>
+                    </div>
+                  ) : editingItem && mediaUrl ? (
+                    <div className="space-y-1">
+                      <p className="text-xs text-zinc-300">Existing media uploaded</p>
+                      <p className="text-[11px] text-zinc-500">Click to replace file</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1 py-2">
+                      <UploadCloud className="size-6 text-violet-400 mx-auto" />
+                      <p className="text-xs text-zinc-200 font-medium">
+                        Click to select image or video
+                      </p>
+                      <p className="text-[10px] text-zinc-500">
+                        Images (JPG, PNG, WebP ≤ 10MB) • Videos (MP4, WebM ≤ 100MB)
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* External URL Mode */
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-zinc-300">Type</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: "image", label: "Image", icon: Image },
+                      { value: "video", label: "Video", icon: Video },
+                      { value: "link", label: "Link", icon: Link2 },
+                    ].map((t) => {
+                      const Icon = t.icon;
+                      const isSelected = mediaType === t.value;
+                      return (
+                        <button
+                          key={t.value}
+                          type="button"
+                          onClick={() => setMediaType(t.value)}
+                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-xs font-medium border transition-colors ${
+                            isSelected
+                              ? "bg-violet-600 text-white border-violet-500"
+                              : "bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white"
+                          }`}
+                        >
+                          <Icon className="size-3" />
+                          {t.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-zinc-300">Media URL</label>
+                  <Input
+                    value={mediaUrl}
+                    onChange={(e) => setMediaUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-600 focus-visible:ring-violet-500 text-xs h-9"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Thumbnail URL (for Video) */}
             {mediaType === "video" && (
@@ -493,9 +685,6 @@ export default function CreatorPortfolio() {
                 placeholder="https://instagram.com/reel/... or https://youtube.com/..."
                 className="bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-600 focus-visible:ring-violet-500 text-xs h-9"
               />
-              <p className="text-[10px] text-zinc-500">
-                Link to live post, client website, or full case study
-              </p>
             </div>
 
             {/* Description */}
@@ -506,7 +695,7 @@ export default function CreatorPortfolio() {
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe your role, engagement metrics, campaign results, and production tools..."
+                placeholder="Describe your role, engagement metrics, and production tools..."
                 rows={3}
                 maxLength={1000}
                 className="bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-600 focus-visible:ring-violet-500 text-xs"
@@ -531,7 +720,7 @@ export default function CreatorPortfolio() {
                 {saving ? (
                   <>
                     <Loader2 className="size-3.5 animate-spin mr-1.5" />
-                    Saving...
+                    {savingStep || "Saving..."}
                   </>
                 ) : (
                   "Save Item"

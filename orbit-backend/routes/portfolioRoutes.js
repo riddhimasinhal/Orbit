@@ -8,7 +8,18 @@ const {
     createPortfolioItem,
     updatePortfolioItem,
     deletePortfolioItem,
+    uploadPortfolioMedia,
 } = require("../controllers/portfolioController");
+const { handleMediaUpload } = require("../middleware/uploadMiddleware");
+
+// Creator: Upload media file (image/video) to Cloudinary
+router.post(
+    "/upload",
+    authMiddleware,
+    requireRole("creator"),
+    handleMediaUpload,
+    uploadPortfolioMedia
+);
 
 // Creator: List own portfolio items
 router.get("/mine", authMiddleware, requireRole("creator"), getMyPortfolio);
