@@ -14,6 +14,10 @@ import {
   Check,
   Loader2,
   AlertCircle,
+  Handshake,
+  User,
+  CheckCircle2,
+  Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +46,12 @@ export default function BrandCampaignDetail() {
   const [publishing, setPublishing] = useState(false);
   const [closing, setClosing] = useState(false);
 
+  // Application states
+  const [applications, setApplications] = useState([]);
+  const [loadingApps, setLoadingApps] = useState(false);
+  const [appFilter, setAppFilter] = useState("all");
+  const [processingAppId, setProcessingAppId] = useState(null);
+
   // Form states for editing draft
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -53,6 +63,51 @@ export default function BrandCampaignDetail() {
   const [applicationDeadline, setApplicationDeadline] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const fetchApplications = async () => {
+    try {
+      setLoadingApps(true);
+      const res = await api.get(`/campaigns/${campaignId}/applications`);
+      setApplications(res.data.applications || []);
+    } catch (err) {
+      console.error("Failed to load applications", err);
+    } finally {
+      setLoadingApps(false);
+    }
+  };
+
+  const handleAcceptApplication = async (appId) => {
+    try {
+      setProcessingAppId(appId);
+      await api.patch(`/applications/${appId}/accept`);
+      toast.success("Application accepted! Collaboration created.");
+      setApplications((prev) =>
+        prev.map((a) => (a._id === appId ? { ...a, status: "accepted" } : a))
+      );
+    } catch (err) {
+      console.error("Failed to accept application", err);
+      toast.error(err.response?.data?.message || "Failed to accept application.");
+    } finally {
+      setProcessingAppId(null);
+    }
+  };
+
+  const handleRejectApplication = async (appId) => {
+    if (!window.confirm("Are you sure you want to decline this application?")) return;
+    try {
+      setProcessingAppId(appId);
+      await api.patch(`/applications/${appId}/reject`);
+      toast.success("Application declined.");
+      setApplications((prev) =>
+        prev.map((a) => (a._id === appId ? { ...a, status: "rejected" } : a))
+      );
+    } catch (err) {
+      console.error("Failed to decline application", err);
+      toast.error(err.response?.data?.message || "Failed to decline application.");
+    } finally {
+      setProcessingAppId(null);
+    }
+  };
 
   const fetchCampaign = async () => {
     setLoading(true);
@@ -72,6 +127,8 @@ export default function BrandCampaignDetail() {
       setApplicationDeadline(camp.applicationDeadline ? camp.applicationDeadline.slice(0, 10) : "");
       setStartDate(camp.startDate ? camp.startDate.slice(0, 10) : "");
       setEndDate(camp.endDate ? camp.endDate.slice(0, 10) : "");
+
+      fetchApplications();
     } catch (err) {
       console.error("Failed to load campaign", err);
       setError(err.response?.data?.message || "Failed to load campaign details.");
@@ -98,6 +155,8 @@ export default function BrandCampaignDetail() {
         setApplicationDeadline(camp.applicationDeadline ? camp.applicationDeadline.slice(0, 10) : "");
         setStartDate(camp.startDate ? camp.startDate.slice(0, 10) : "");
         setEndDate(camp.endDate ? camp.endDate.slice(0, 10) : "");
+
+        fetchApplications();
       } catch (err) {
         if (!isMounted) return;
         console.error("Failed to load campaign", err);
@@ -643,6 +702,202 @@ export default function BrandCampaignDetail() {
           </div>
         </div>
       )}
+
+      {/* Applications Section for Campaign */}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-white/10 pb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Handshake className="size-5 text-violet-400" />
+              Creator Applications & Proposals
+              <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 font-normal">
+                {applications.length}
+              </span>
+            </h2>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Review creator pitches, proposed compensation, and initiate collaborations
+            </p>
+          </div>
+
+          {/* Filter Pills */}
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { label: "All", value: "all" },
+              { label: "Pending", value: "pending" },
+              { label: "Accepted", value: "accepted" },
+              { label: "Rejected", value: "rejected" },
+            ].map((f) => {
+              const count = f.value === "all" ? applications.length : applications.filter(a => a.status === f.value).length;
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => setAppFilter(f.value)}
+                  className={`px-3 py-1 rounded-xl text-xs font-medium transition-all ${
+                    appFilter === f.value
+                      ? "bg-violet-600 text-white"
+                      : "bg-white/[0.04] text-zinc-400 hover:text-white border border-white/5"
+                  }`}
+                >
+                  {f.label} ({count})
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Applications List */}
+        {loadingApps ? (
+          <div className="py-12 text-center text-zinc-400 text-xs">
+            <Loader2 className="size-5 animate-spin mx-auto mb-2 text-violet-400" />
+            Loading applicant proposals...
+          </div>
+        ) : applications.length === 0 ? (
+          <div className="py-10 text-center space-y-2">
+            <p className="text-sm font-medium text-zinc-300">No applications received yet</p>
+            <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+              Once creators discover your published campaign, their pitches and proposed budgets will appear here for review.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {applications
+              .filter((app) => appFilter === "all" || app.status === appFilter)
+              .map((app) => {
+                const creator = app.creator || {};
+                const creatorProfile = app.creatorProfile || {};
+                const isPending = app.status === "pending";
+                const isAccepted = app.status === "accepted";
+                const isRejected = app.status === "rejected";
+                const isWithdrawn = app.status === "withdrawn";
+
+                return (
+                  <div
+                    key={app._id}
+                    className="rounded-xl border border-white/10 bg-white/[0.02] p-5 space-y-4 hover:border-white/20 transition-colors"
+                  >
+                    {/* Applicant Profile Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-11 items-center justify-center rounded-full bg-violet-500/15 text-sm font-semibold text-violet-300">
+                          {creator.name?.slice(0, 2).toUpperCase() || "CR"}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-white">
+                              {creator.name || "Creator"}
+                            </h3>
+                            {creatorProfile.handle && (
+                              <span className="text-xs text-zinc-500">
+                                @{creatorProfile.handle}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-zinc-400">
+                            {creator.email}
+                            {creatorProfile.niche && creatorProfile.niche.length > 0 && (
+                              <span className="text-zinc-500 ml-2">
+                                • {creatorProfile.niche.join(", ")}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Status Badge */}
+                      <div>
+                        {isPending && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                            <Clock className="size-3" />
+                            Pending Review
+                          </span>
+                        )}
+                        {isAccepted && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                            <CheckCircle2 className="size-3" />
+                            Accepted • Active
+                          </span>
+                        )}
+                        {isRejected && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-300 border border-rose-500/20">
+                            <XCircle className="size-3" />
+                            Declined
+                          </span>
+                        )}
+                        {isWithdrawn && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-500/20">
+                            <Undo2 className="size-3" />
+                            Withdrawn by Creator
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Proposal Details */}
+                    <div className="rounded-lg bg-white/[0.02] border border-white/5 p-4 space-y-2 text-xs">
+                      <div className="flex items-center justify-between text-zinc-400">
+                        <span className="font-medium text-zinc-300">Creator's Pitch:</span>
+                        {app.proposedBudget !== null && app.proposedBudget !== undefined && (
+                          <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+                            <DollarSign className="size-3.5" />
+                            Proposed Budget: ${app.proposedBudget.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                        {app.pitch}
+                      </p>
+                    </div>
+
+                    {/* Action Bar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1 text-xs text-zinc-500">
+                      <span>Applied on: {formatDate(app.createdAt)}</span>
+
+                      <div className="flex items-center gap-2">
+                        {isPending && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={processingAppId === app._id}
+                              onClick={() => handleRejectApplication(app._id)}
+                              className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 text-xs h-8 px-3"
+                            >
+                              Decline
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={processingAppId === app._id}
+                              onClick={() => handleAcceptApplication(app._id)}
+                              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-8 px-4 flex items-center gap-1.5"
+                            >
+                              {processingAppId === app._id ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                              ) : (
+                                <Check className="size-3.5" />
+                              )}
+                              Accept Proposal
+                            </Button>
+                          </>
+                        )}
+
+                        {isAccepted && (
+                          <Button
+                            size="sm"
+                            onClick={() => navigate("/brand/collaborations")}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-8 px-3.5 flex items-center gap-1.5"
+                          >
+                            <Handshake className="size-3.5" />
+                            View Collaboration
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
