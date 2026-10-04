@@ -31,6 +31,7 @@ import CreateCampaign from "./pages/campaigns/CreateCampaign"
 import BrandCampaignDetail from "./pages/campaigns/BrandCampaignDetail"
 import CreatorApplications from "./pages/campaigns/CreatorApplications"
 import Collaborations from "./pages/collaborations/Collaborations"
+import CreatorPortfolio from "./pages/portfolio/CreatorPortfolio"
 
 function App() {
   return (
@@ -62,6 +63,7 @@ function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<CreatorDashboard />} />
           <Route path="profile" element={<CreatorProfile />} />
+          <Route path="portfolio" element={<CreatorPortfolio />} />
           <Route path="settings" element={<CreatorSettings />} />
           <Route path="browse" element={<BrowseBrands />} />
           <Route path="campaigns" element={<BrowseCampaigns />} />

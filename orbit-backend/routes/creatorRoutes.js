@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const { createCreatorProfile, getCreatorProfile, updateCreatorProfile, getAllCreators, getCreatorById
 } = require("../controllers/creatorController");
+const { getCreatorPortfolio } = require("../controllers/portfolioController");
 const authMiddleware = require("../middleware/authMiddleware");
 const { requireRole } = require("../middleware/roleMiddleware");
 
@@ -27,6 +28,11 @@ router.get(
     "/all",
     authMiddleware,
     getAllCreators,
+)
+router.get(
+    "/:creatorId/portfolio",
+    authMiddleware,
+    getCreatorPortfolio,
 )
 router.get(
     "/:id",

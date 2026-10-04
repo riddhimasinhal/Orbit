@@ -15,6 +15,10 @@ import {
   X,
   Clock,
   MessageSquare,
+  FolderOpen,
+  Video,
+  ExternalLink,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,6 +34,7 @@ const CreatorDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [creator, setCreator] = useState(null);
+  const [portfolioItems, setPortfolioItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [connectionStatus, setConnectionStatus] = useState(null);
@@ -46,6 +51,16 @@ const CreatorDetail = () => {
         const res = await api.get("/creator/" + id);
         if (!active) return;
         setCreator(res.data.creator);
+
+        // Fetch creator portfolio items without N+1 overhead
+        try {
+          const portRes = await api.get("/creators/" + id + "/portfolio");
+          if (active) {
+            setPortfolioItems(portRes.data.portfolioItems || []);
+          }
+        } catch (portErr) {
+          console.log("Failed to load creator portfolio", portErr);
+        }
 
         // check if already connected
         if (res.data.creator?.userId) {
@@ -258,6 +273,110 @@ const CreatorDetail = () => {
           </p>
           <p className="text-xs text-zinc-500 mt-1">Audience Country</p>
         </div>
+      </div>
+
+      {/* Creator Portfolio & Past Work Showcase */}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-4">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div>
+            <h2 className="text-base font-semibold text-white flex items-center gap-2">
+              <FolderOpen className="size-5 text-violet-400" />
+              Portfolio & Creative Showcase
+              <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 font-normal">
+                {portfolioItems.length}
+              </span>
+            </h2>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Work samples, campaign case studies, and content produced by {creator?.fullName || "this creator"}
+            </p>
+          </div>
+        </div>
+
+        {portfolioItems.length === 0 ? (
+          <div className="text-center py-8 space-y-2">
+            <Sparkles className="size-6 text-zinc-500 mx-auto" />
+            <p className="text-sm font-medium text-zinc-300">
+              No portfolio items shared yet
+            </p>
+            <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+              This creator has not uploaded any portfolio showcase items yet.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
+            {portfolioItems.map((item) => (
+              <div
+                key={item._id}
+                className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden flex flex-col hover:border-white/20 transition-all group"
+              >
+                <div className="relative aspect-video w-full bg-zinc-900 border-b border-white/10 overflow-hidden flex items-center justify-center">
+                  {item.mediaUrl && item.mediaType === "image" ? (
+                    <img
+                      src={item.mediaUrl}
+                      alt={item.title}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ) : item.mediaUrl && item.mediaType === "video" ? (
+                    item.thumbnailUrl ? (
+                      <div className="relative w-full h-full">
+                        <img
+                          src={item.thumbnailUrl}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <div className="size-9 rounded-full bg-violet-600/80 text-white flex items-center justify-center">
+                            <Video className="size-4" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <Video className="size-8 text-violet-400/80" />
+                    )
+                  ) : (
+                    <Link2 className="size-8 text-violet-400/80" />
+                  )}
+
+                  <div className="absolute top-2 right-2">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-black/60 backdrop-blur-md text-white border border-white/10">
+                      {item.mediaType === "image" ? "Image" : item.mediaType === "video" ? "Video" : "Link"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h3 className="text-xs font-semibold text-white line-clamp-1 group-hover:text-violet-300 transition-colors">
+                      {item.title}
+                    </h3>
+                    {item.description && (
+                      <p className="text-[11px] text-zinc-400 line-clamp-2 mt-1 leading-relaxed">
+                        {item.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {item.projectUrl && (
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-end">
+                      <a
+                        href={item.projectUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors"
+                      >
+                        <span>View Project</span>
+                        <ExternalLink className="size-3" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* social links */}
