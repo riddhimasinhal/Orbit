@@ -11,7 +11,13 @@ import {
   ExternalLink,
   ArrowRight,
   Sparkles,
+  CheckCircle2,
+  ShieldCheck,
+  Clock,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 const formatNum = (num) => {
@@ -27,6 +33,7 @@ const CreatorProfile = () => {
   const [profile, setProfile] = useState(null);
   const [portfolioItems, setPortfolioItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [requestingVerification, setRequestingVerification] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,6 +54,25 @@ const CreatorProfile = () => {
     fetchData();
   }, []);
 
+  const handleRequestVerification = async () => {
+    if (requestingVerification) return;
+    setRequestingVerification(true);
+    try {
+      const res = await api.post("/verification/request");
+      toast.success(res.data.message || "Verification request submitted!");
+      setProfile((prev) => ({
+        ...prev,
+        verificationStatus: "pending",
+        verificationRequestedAt: res.data.requestedAt || new Date().toISOString(),
+      }));
+    } catch (err) {
+      console.error("Failed to request verification", err);
+      toast.error(err.response?.data?.message || "Failed to submit verification request");
+    } finally {
+      setRequestingVerification(false);
+    }
+  };
+
   if (loading) return <p className="text-zinc-400">Loading profile...</p>;
 
   return (
@@ -58,9 +84,20 @@ const CreatorProfile = () => {
             {profile?.fullName?.slice(0, 2).toUpperCase() || "CR"}
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold text-white">
-              {profile?.fullName || "Creator"}
-            </h1>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-2xl font-semibold text-white">
+                {profile?.fullName || "Creator"}
+              </h1>
+              {profile?.verificationStatus === "verified" && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400"
+                  title="Verified by Orbit"
+                >
+                  <CheckCircle2 className="size-3.5" />
+                  Verified by Orbit
+                </span>
+              )}
+            </div>
             {profile?.username && (
               <p className="text-sm text-violet-400">@{profile.username}</p>
             )}
@@ -88,6 +125,68 @@ const CreatorProfile = () => {
           <p className="mt-4 text-sm text-zinc-400 border-t border-white/5 pt-4">
             {profile.bio}
           </p>
+        )}
+      </div>
+
+      {/* Verification Status Card */}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <ShieldCheck className="size-5 text-violet-400" />
+            <h2 className="text-sm font-semibold text-white">Creator Verification</h2>
+            {profile?.verificationStatus === "verified" && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
+                <CheckCircle2 className="size-3.5" />
+                Verified by Orbit
+              </span>
+            )}
+            {profile?.verificationStatus === "pending" && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
+                <Clock className="size-3.5" />
+                Verification Pending
+              </span>
+            )}
+            {profile?.verificationStatus === "rejected" && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-400">
+                <AlertCircle className="size-3.5" />
+                Verification Rejected
+              </span>
+            )}
+            {(!profile?.verificationStatus || profile?.verificationStatus === "unverified") && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs font-medium text-zinc-400">
+                Not Verified
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-zinc-400">
+            {profile?.verificationStatus === "verified"
+              ? "Your profile is verified by Orbit. Brands can see the verified trust badge on your cards."
+              : profile?.verificationStatus === "pending"
+              ? "Your verification request is currently under review by the Orbit team."
+              : profile?.verificationStatus === "rejected"
+              ? `Reason: ${profile?.verificationRejectionReason || "Requirements not met."}`
+              : "Get verified by Orbit to build credibility and trust with brands."}
+          </p>
+        </div>
+
+        {(!profile?.verificationStatus || profile?.verificationStatus === "unverified" || profile?.verificationStatus === "rejected") && (
+          <Button
+            size="sm"
+            onClick={handleRequestVerification}
+            disabled={requestingVerification}
+            className="bg-violet-600 hover:bg-violet-500 text-white text-xs px-4 h-8 shrink-0 flex items-center gap-1.5"
+          >
+            {requestingVerification ? (
+              <>
+                <Loader2 className="size-3.5 animate-spin" />
+                Requesting...
+              </>
+            ) : profile?.verificationStatus === "rejected" ? (
+              "Request Again"
+            ) : (
+              "Request Verification"
+            )}
+          </Button>
         )}
       </div>
 

@@ -232,7 +232,9 @@ const getCampaignApplications = async (req, res) => {
         // Batch populate creator profiles without N+1
         const creatorIds = [...new Set(applications.map((a) => a.creatorId.toString()))];
         const [creatorProfiles, creatorUsers] = await Promise.all([
-            CreatorProfile.find({ userId: { $in: creatorIds } }).lean(),
+            CreatorProfile.find({ userId: { $in: creatorIds } })
+                .select("-verifiedBy -verificationRejectionReason -verificationRejectedAt")
+                .lean(),
             User.find({ _id: { $in: creatorIds } }).select("name email").lean(),
         ]);
 
@@ -309,7 +311,9 @@ const getApplicationById = async (req, res) => {
 
         // Populate creator and brand info
         const [creatorProfile, creatorUser, brandProfile, brandUser] = await Promise.all([
-            CreatorProfile.findOne({ userId: application.creatorId }).lean(),
+            CreatorProfile.findOne({ userId: application.creatorId })
+                .select("-verifiedBy -verificationRejectionReason -verificationRejectedAt")
+                .lean(),
             User.findById(application.creatorId).select("name email").lean(),
             BrandProfile.findOne({ userId: campaign.brandId }).lean(),
             User.findById(campaign.brandId).select("name email").lean(),

@@ -11,6 +11,8 @@ const campaignRoutes = require("./routes/campaignRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
 const collaborationRoutes = require("./routes/collaborationRoutes");
 const portfolioRoutes = require("./routes/portfolioRoutes");
+const verificationRoutes = require("./routes/verificationRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 dotenv.config();
 
 if (!process.env.JWT_SECRET) {
@@ -41,6 +43,8 @@ app.use("/api/campaigns", campaignRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/collaborations", collaborationRoutes);
 app.use("/api/portfolio", portfolioRoutes);
+app.use("/api/verification", verificationRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get('/', (req, res) => {
     res.send("API running");
