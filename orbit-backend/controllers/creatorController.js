@@ -36,7 +36,7 @@ const getCreatorProfile = async (req, res) => {
 
         const creator = await CreatorProfile.findOne({
             userId,
-        })
+        }).select("-verifiedBy");
 
         if (!creator) {
             return res.status(404).json({
@@ -130,7 +130,10 @@ const getAllCreators = async (req, res) => {
 
         const [total, creators] = await Promise.all([
             CreatorProfile.countDocuments(filter),
-            CreatorProfile.find(filter).skip(skip).limit(limit),
+            CreatorProfile.find(filter)
+                .select("-verifiedBy -verificationRejectionReason -verificationRejectedAt")
+                .skip(skip)
+                .limit(limit),
         ]);
 
         console.log("Found creators:", creators.length, "Total:", total);
@@ -155,7 +158,8 @@ const getCreatorById = async (req, res) => {
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(400).json({ message: "Invalid creator ID" });
         }
-        const creator = await CreatorProfile.findById(req.params.id);
+        const creator = await CreatorProfile.findById(req.params.id)
+            .select("-verifiedBy -verificationRejectionReason -verificationRejectedAt");
         if (!creator) {
             return res.status(404).json({ message: "Creator not found" })
         }

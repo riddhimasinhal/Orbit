@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema(
         },
         role: {
             type: String,
-            enum: ["creator", "brand"],
+            enum: ["creator", "brand", "admin"],
             required: true,
         },
         onBoardingCompleted: {

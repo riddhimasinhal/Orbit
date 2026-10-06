@@ -18,6 +18,7 @@ import {
   FolderOpen,
   ExternalLink,
   Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -167,9 +168,20 @@ const CreatorDetail = () => {
             {creator?.fullName?.slice(0, 2).toUpperCase() || "CR"}
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold text-white">
-              {creator?.fullName || "Creator"}
-            </h1>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-2xl font-semibold text-white">
+                {creator?.fullName || "Creator"}
+              </h1>
+              {creator?.verificationStatus === "verified" && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400"
+                  title="Verified by Orbit"
+                >
+                  <CheckCircle2 className="size-3.5" />
+                  Verified by Orbit
+                </span>
+              )}
+            </div>
             {creator?.username && (
               <p className="text-sm text-violet-400">@{creator.username}</p>
             )}

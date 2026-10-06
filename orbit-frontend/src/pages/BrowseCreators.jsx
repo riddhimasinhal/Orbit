@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
-import { Search, MapPin, AtSign, Play, Eye } from "lucide-react";
+import { Search, MapPin, AtSign, Play, Eye, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -190,9 +190,20 @@ const BrowseCreators = () => {
                   {creator.fullName?.slice(0, 2).toUpperCase() || "CR"}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-white truncate">
-                    {creator.fullName || "Creator"}
-                  </h3>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <h3 className="text-sm font-semibold text-white truncate">
+                      {creator.fullName || "Creator"}
+                    </h3>
+                    {creator.verificationStatus === "verified" && (
+                      <span
+                        className="inline-flex items-center gap-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 shrink-0"
+                        title="Verified by Orbit"
+                      >
+                        <CheckCircle2 className="size-3" />
+                        Verified
+                      </span>
+                    )}
+                  </div>
                   {creator.username && (
                     <p className="text-xs text-violet-400 truncate">
                       @{creator.username}
