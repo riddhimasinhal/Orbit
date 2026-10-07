@@ -25,6 +25,7 @@ import {
   FileTextIcon,
   HandshakeIcon,
   FolderOpenIcon,
+  ShieldCheckIcon,
 } from "lucide-react";
 
 const sidebarConfig = {
@@ -140,14 +141,45 @@ const sidebarConfig = {
       },
     ],
   },
+  admin: {
+    label: "Admin",
+    homeUrl: "/admin/verifications",
+    user: {
+      name: "Orbit Admin",
+      email: "admin@orbit.com",
+      avatar: "",
+    },
+    navMain: [
+      {
+        title: "Verification Requests",
+        url: "/admin/verifications",
+        icon: <ShieldCheckIcon />,
+      },
+    ],
+  },
 };
 
 export function AppSidebar({ role = "creator", user, ...props }) {
-  const config = sidebarConfig[role];
+  const config = sidebarConfig[role] || sidebarConfig.creator;
   const displayUser = user || config.user;
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
+    if (role === "admin") {
+      const fetchAdminCount = async () => {
+        try {
+          const res = await api.get("/admin/verifications?limit=1");
+          setPendingCount(res.data?.pagination?.total || 0);
+        } catch {
+          // ignore
+        }
+      };
+      fetchAdminCount();
+
+      const interval = setInterval(fetchAdminCount, 30000);
+      return () => clearInterval(interval);
+    }
+
     const fetchCount = async () => {
       try {
         const res = await api.get("/connections/count");
@@ -162,11 +194,11 @@ export function AppSidebar({ role = "creator", user, ...props }) {
     // refresh count every 30 seconds
     const interval = setInterval(fetchCount, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [role]);
 
   // add badge to requests nav item
   const navItems = config.navMain.map((item) => {
-    if (item.title === "Requests" && pendingCount > 0) {
+    if ((item.title === "Requests" || item.title === "Verification Requests") && pendingCount > 0) {
       return { ...item, badge: pendingCount };
     }
     return item;
