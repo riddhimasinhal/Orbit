@@ -35,7 +35,9 @@ export function LoginForm() {
       const onBoardingCompleted = response.data.onBoardingCompleted;
       console.log("Role:", role);
 
-      if (onBoardingCompleted) {
+      if (role === "admin") {
+        navigate("/admin/verifications");
+      } else if (onBoardingCompleted) {
         if (role === "creator") {
           navigate("/creator/dashboard");
         } else {

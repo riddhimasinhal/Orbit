@@ -32,6 +32,8 @@ import BrandCampaignDetail from "./pages/campaigns/BrandCampaignDetail"
 import CreatorApplications from "./pages/campaigns/CreatorApplications"
 import Collaborations from "./pages/collaborations/Collaborations"
 import CreatorPortfolio from "./pages/portfolio/CreatorPortfolio"
+import AdminLayout from "./layouts/AdminLayout"
+import AdminVerifications from "./pages/admin/AdminVerifications"
 
 function App() {
   return (
@@ -97,6 +99,19 @@ function App() {
           <Route path="requests" element={<Requests />} />
           <Route path="messages" element={<Messages />} />
           <Route path="messages/:conversationId" element={<Messages />} />
+        </Route>
+
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoutes>
+              <AdminLayout />
+            </ProtectedRoutes>
+          }
+        >
+          <Route index element={<Navigate to="verifications" replace />} />
+          <Route path="verifications" element={<AdminVerifications />} />
+          <Route path="creator/:id" element={<CreatorDetail />} />
         </Route>
 
         <Route path="/creator-dashboard" element={<Navigate to="/creator/dashboard" replace />} />

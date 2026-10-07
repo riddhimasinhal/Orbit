@@ -23,6 +23,7 @@ const ProtectedRoutes = ({ children }) => {
     }
 
     // Check expiration if exp claim is present
+    // eslint-disable-next-line react-hooks/purity
     if (payload.exp && payload.exp * 1000 <= Date.now()) {
         console.log("Token expired");
         localStorage.removeItem("token");
@@ -41,10 +42,11 @@ const ProtectedRoutes = ({ children }) => {
     const isBrandOnboarding = pathname === "/brand-onboarding";
     const isCreatorAppRoute = pathname === "/creator" || pathname.startsWith("/creator/");
     const isBrandAppRoute = pathname === "/brand" || pathname.startsWith("/brand/");
+    const isAdminAppRoute = pathname === "/admin" || pathname.startsWith("/admin/");
 
     // Role validation & onboarding enforcement
     if (role === "creator") {
-        if (isBrandOnboarding || isBrandAppRoute) {
+        if (isBrandOnboarding || isBrandAppRoute || isAdminAppRoute) {
             return <Navigate to={onBoardingCompleted ? "/creator/dashboard" : "/creator-onboarding"} replace />;
         }
         if (!onBoardingCompleted && isCreatorAppRoute) {
@@ -54,7 +56,7 @@ const ProtectedRoutes = ({ children }) => {
             return <Navigate to="/creator/dashboard" replace />;
         }
     } else if (role === "brand") {
-        if (isCreatorOnboarding || isCreatorAppRoute) {
+        if (isCreatorOnboarding || isCreatorAppRoute || isAdminAppRoute) {
             return <Navigate to={onBoardingCompleted ? "/brand/dashboard" : "/brand-onboarding"} replace />;
         }
         if (!onBoardingCompleted && isBrandAppRoute) {
@@ -62,6 +64,13 @@ const ProtectedRoutes = ({ children }) => {
         }
         if (onBoardingCompleted && isBrandOnboarding) {
             return <Navigate to="/brand/dashboard" replace />;
+        }
+    } else if (role === "admin") {
+        if (isCreatorOnboarding || isBrandOnboarding || isCreatorAppRoute || isBrandAppRoute) {
+            return <Navigate to="/admin/verifications" replace />;
+        }
+        if (!isAdminAppRoute) {
+            return <Navigate to="/admin/verifications" replace />;
         }
     } else {
         localStorage.removeItem("token");

@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const CreatorProfile = require("../models/CreatorProfile");
+const PortfolioItem = require("../models/PortfolioItem");
 
 /**
  * GET /api/admin/verifications
@@ -26,10 +27,29 @@ const getPendingVerifications = async (req, res) => {
                 .limit(limit),
         ]);
 
+        const creatorUserIds = requests
+            .map((r) => (r.userId && r.userId._id ? r.userId._id : r.userId))
+            .filter(Boolean);
+
+        const portfolioCounts = await PortfolioItem.aggregate([
+            { $match: { creatorId: { $in: creatorUserIds } } },
+            { $group: { _id: "$creatorId", count: { $sum: 1 } } },
+        ]);
+        const countMap = new Map(portfolioCounts.map((p) => [p._id.toString(), p.count]));
+
+        const enrichedRequests = requests.map((req) => {
+            const obj = req.toObject ? req.toObject() : { ...req };
+            const uid = (obj.userId && obj.userId._id ? obj.userId._id : obj.userId)?.toString();
+            return {
+                ...obj,
+                portfolioCount: countMap.get(uid) || 0,
+            };
+        });
+
         res.status(200).json({
             success: true,
-            requests,
-            data: requests,
+            requests: enrichedRequests,
+            data: enrichedRequests,
             pagination: {
                 page,
                 limit,
