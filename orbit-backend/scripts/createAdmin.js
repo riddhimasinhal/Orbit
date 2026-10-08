@@ -1,6 +1,5 @@
 const path = require("path");
 const readline = require("readline");
-const { Writable } = require("stream");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
@@ -11,62 +10,99 @@ dotenv.config();
 const User = require("../models/User");
 
 /**
- * Creates an input reader supporting both interactive TTY (with masked passwords)
- * and non-interactive piped stdin for scripted provisioning.
+ * Captures credentials reliably across both interactive Windows PowerShell TTY
+ * (with hidden password input via raw mode) and non-interactive piped stdin.
  */
-function createInputReader() {
+function getCredentials() {
     const isTTY = Boolean(process.stdin.isTTY);
 
     if (!isTTY) {
+        // Non-interactive / piped stdin (e.g. automated test suites)
         const rl = readline.createInterface({ input: process.stdin });
         const iterator = rl[Symbol.asyncIterator]();
-        return {
-            async ask(query) {
-                process.stdout.write(query);
-                const next = await iterator.next();
-                return (next.value || "").trim();
-            },
-            close() {
-                rl.close();
-            },
+        const readLine = async (promptText) => {
+            process.stdout.write(promptText);
+            const next = await iterator.next();
+            return (next.value || "").trim();
         };
+
+        return (async () => {
+            const name = await readLine("Admin name: ");
+            const email = await readLine("Admin email: ");
+            const password = await readLine("Admin password: ");
+            const confirmPassword = await readLine("Confirm password: ");
+            rl.close();
+            return { name, email, password, confirmPassword };
+        })();
     }
 
-    // TTY interactive mode with password masking
-    let muted = false;
-    const mutableStdout = new Writable({
-        write: function (chunk, encoding, callback) {
-            if (!muted) {
-                process.stdout.write(chunk, encoding);
-            }
-            callback();
-        },
-    });
+    // Interactive TTY mode (Windows PowerShell / CMD / Terminal)
+    return (async () => {
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+        });
 
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: mutableStdout,
-        terminal: true,
-    });
+        const name = await new Promise((resolve) => {
+            rl.question("Admin name: ", (ans) => resolve((ans || "").trim()));
+        });
 
-    return {
-        ask(query, isSecret = false) {
+        const email = await new Promise((resolve) => {
+            rl.question("Admin email: ", (ans) => resolve((ans || "").trim()));
+        });
+
+        rl.close();
+
+        // Hidden input using process.stdin raw mode
+        const askSecret = (promptText) => {
             return new Promise((resolve) => {
-                process.stdout.write(query);
-                if (isSecret) muted = true;
-                rl.question("", (ans) => {
-                    if (isSecret) {
-                        muted = false;
-                        process.stdout.write("\n");
+                process.stdout.write(promptText);
+                let input = "";
+
+                process.stdin.setRawMode(true);
+                process.stdin.resume();
+                process.stdin.setEncoding("utf8");
+
+                function onData(chunk) {
+                    chunk = String(chunk);
+                    for (let i = 0; i < chunk.length; i++) {
+                        const ch = chunk[i];
+                        if (ch === "\r" || ch === "\n" || ch === "\u0004") {
+                            process.stdin.setRawMode(false);
+                            process.stdin.pause();
+                            process.stdin.removeListener("data", onData);
+                            process.stdout.write("\n");
+                            resolve(input.trim());
+                            return;
+                        }
+                        if (ch === "\u0003") { // Ctrl+C
+                            process.stdin.setRawMode(false);
+                            process.stdin.pause();
+                            process.stdin.removeListener("data", onData);
+                            process.stdout.write("\n");
+                            process.exit(1);
+                        }
+                        if (ch === "\u0008" || ch === "\x7f") { // Backspace
+                            if (input.length > 0) {
+                                input = input.slice(0, -1);
+                            }
+                            continue;
+                        }
+                        if (ch >= " " || ch === "\t") {
+                            input += ch;
+                        }
                     }
-                    resolve((ans || "").trim());
-                });
+                }
+
+                process.stdin.on("data", onData);
             });
-        },
-        close() {
-            rl.close();
-        },
-    };
+        };
+
+        const password = await askSecret("Admin password: ");
+        const confirmPassword = await askSecret("Confirm password: ");
+
+        return { name, email, password, confirmPassword };
+    })();
 }
 
 async function createAdmin() {
@@ -74,20 +110,16 @@ async function createAdmin() {
     console.log("       ORBIT ADMIN PROVISIONING           ");
     console.log("==========================================\n");
 
-    const reader = createInputReader();
-
     try {
-        const name = await reader.ask("Admin name: ");
+        const { name, email, password, confirmPassword } = await getCredentials();
+
         if (!name) {
             console.error("\nError: Admin name is required.");
-            reader.close();
             process.exit(1);
         }
 
-        const email = await reader.ask("Admin email: ");
         if (!email) {
             console.error("\nError: Admin email is required.");
-            reader.close();
             process.exit(1);
         }
 
@@ -95,37 +127,28 @@ async function createAdmin() {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(normalizedEmail)) {
             console.error("\nError: Please enter a valid email address.");
-            reader.close();
             process.exit(1);
         }
 
-        const password = await reader.ask("Admin password: ", true);
         if (!password) {
             console.error("\nError: Admin password is required.");
-            reader.close();
             process.exit(1);
         }
 
         if (password.length < 8) {
             console.error("\nError: Password must be at least 8 characters long.");
-            reader.close();
             process.exit(1);
         }
 
-        const confirmPassword = await reader.ask("Confirm password: ", true);
         if (!confirmPassword) {
             console.error("\nError: Password confirmation is required.");
-            reader.close();
             process.exit(1);
         }
 
         if (password !== confirmPassword) {
             console.error("\nError: Passwords do not match.");
-            reader.close();
             process.exit(1);
         }
-
-        reader.close();
 
         // Connect to MongoDB using existing configuration
         const mongoURI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/orbit";
@@ -146,7 +169,7 @@ async function createAdmin() {
             }
         }
 
-        // Check if user already exists
+        // Search for existing user by normalized email
         const existingUser = await User.findOne({ email: normalizedEmail });
 
         if (existingUser) {
@@ -181,7 +204,6 @@ async function createAdmin() {
         process.exit(0);
     } catch (err) {
         console.error("\nUnexpected error:", err.message);
-        reader.close();
         if (mongoose.connection.readyState !== 0) {
             await mongoose.disconnect();
         }
