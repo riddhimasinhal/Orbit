@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import {
   Handshake,
@@ -8,14 +8,16 @@ import {
   UserCheck,
   Building2,
   User,
-  Clock,
   CheckCircle2,
   XCircle,
   ExternalLink,
   Loader2,
   ShieldAlert,
+  FileText,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 export default function Collaborations() {
   const navigate = useNavigate();
@@ -27,9 +29,9 @@ export default function Collaborations() {
   // Determine current user role
   const role = localStorage.getItem("role") || "creator";
 
-  const fetchCollaborations = async () => {
+  const fetchCollaborations = useCallback(async (showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       setError("");
       const params = {};
       if (statusFilter !== "all") {
@@ -43,10 +45,33 @@ export default function Collaborations() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
 
   useEffect(() => {
-    fetchCollaborations();
+    let ignore = false;
+    const load = async () => {
+      try {
+        setError("");
+        const params = {};
+        if (statusFilter !== "all") {
+          params.status = statusFilter;
+        }
+        const res = await api.get("/collaborations/mine", { params });
+        if (!ignore) {
+          setCollaborations(res.data.collaborations || []);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError(err.response?.data?.message || "Failed to load collaborations.");
+          setLoading(false);
+        }
+      }
+    };
+    load();
+    return () => {
+      ignore = true;
+    };
   }, [statusFilter]);
 
   const formatDate = (dateStr) => {
@@ -224,6 +249,30 @@ export default function Collaborations() {
                   </div>
                 </div>
 
+                {/* Deliverables Progress Preview */}
+                {collab.progress && collab.progress.total > 0 && (
+                  <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3.5 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-zinc-300 flex items-center gap-1.5">
+                        <FileText className="size-3.5 text-violet-400" />
+                        Deliverables: {collab.progress.approved} of {collab.progress.total} approved
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {collab.progress.overdue > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+                            <AlertTriangle className="size-3" />
+                            {collab.progress.overdue} Overdue
+                          </span>
+                        )}
+                        <span className="font-semibold text-violet-400 text-xs">
+                          {collab.progress.percentage}%
+                        </span>
+                      </div>
+                    </div>
+                    <Progress value={collab.progress.percentage} className="h-1.5 bg-white/5" />
+                  </div>
+                )}
+
                 {/* Accepted Pitch preview */}
                 {application.pitch && (
                   <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3.5 text-xs text-zinc-300 leading-relaxed">
@@ -251,14 +300,24 @@ export default function Collaborations() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => navigate(`/${role}/collaborations/${collab._id}`)}
+                      className="bg-violet-600 hover:bg-violet-500 text-white text-xs h-8 px-3.5 flex items-center gap-1.5 font-medium shadow-sm"
+                    >
+                      <Handshake className="size-3.5" />
+                      Open Workspace
+                    </Button>
+
                     {isConnected ? (
                       <Button
                         size="sm"
+                        variant="outline"
                         onClick={() => navigate(`/${role}/messages`)}
-                        className="bg-violet-600 hover:bg-violet-500 text-white text-xs h-8 px-3.5 flex items-center gap-1.5"
+                        className="border-white/10 text-zinc-300 hover:text-white hover:bg-white/5 text-xs h-8 px-3 flex items-center gap-1.5"
                       >
                         <MessageSquare className="size-3.5" />
-                        Message Partner
+                        Chat
                       </Button>
                     ) : (
                       <Button
@@ -274,7 +333,7 @@ export default function Collaborations() {
                         className="border-white/10 text-zinc-300 hover:text-white hover:bg-white/5 text-xs h-8 px-3 flex items-center gap-1.5"
                       >
                         <ExternalLink className="size-3.5" />
-                        View Profile to Connect
+                        Profile
                       </Button>
                     )}
                   </div>

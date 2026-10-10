@@ -31,6 +31,7 @@ import CreateCampaign from "./pages/campaigns/CreateCampaign"
 import BrandCampaignDetail from "./pages/campaigns/BrandCampaignDetail"
 import CreatorApplications from "./pages/campaigns/CreatorApplications"
 import Collaborations from "./pages/collaborations/Collaborations"
+import CollaborationWorkspace from "./pages/collaborations/CollaborationWorkspace"
 import CreatorPortfolio from "./pages/portfolio/CreatorPortfolio"
 import AdminLayout from "./layouts/AdminLayout"
 import AdminVerifications from "./pages/admin/AdminVerifications"
@@ -72,6 +73,7 @@ function App() {
           <Route path="campaigns/:campaignId" element={<CampaignDetail />} />
           <Route path="applications" element={<CreatorApplications />} />
           <Route path="collaborations" element={<Collaborations />} />
+          <Route path="collaborations/:collaborationId" element={<CollaborationWorkspace />} />
           <Route path="brand/:id" element={<BrandDetail />} />
           <Route path="requests" element={<Requests />} />
           <Route path="messages" element={<Messages />} />
@@ -95,6 +97,7 @@ function App() {
           <Route path="campaigns/new" element={<CreateCampaign />} />
           <Route path="campaigns/:campaignId" element={<BrandCampaignDetail />} />
           <Route path="collaborations" element={<Collaborations />} />
+          <Route path="collaborations/:collaborationId" element={<CollaborationWorkspace />} />
           <Route path="creator/:id" element={<CreatorDetail />} />
           <Route path="requests" element={<Requests />} />
           <Route path="messages" element={<Messages />} />

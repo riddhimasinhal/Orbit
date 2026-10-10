@@ -1,5 +1,59 @@
 const mongoose = require("mongoose");
 
+const deliverableSchema = new mongoose.Schema(
+    {
+        title: {
+            type: String,
+            required: true,
+            trim: true,
+            maxlength: 200,
+        },
+        description: {
+            type: String,
+            trim: true,
+            maxlength: 2000,
+            default: "",
+        },
+        status: {
+            type: String,
+            enum: ["pending", "submitted", "revision_requested", "approved"],
+            default: "pending",
+        },
+        dueDate: {
+            type: Date,
+            default: null,
+        },
+        submissionUrl: {
+            type: String,
+            trim: true,
+            default: "",
+        },
+        submissionNotes: {
+            type: String,
+            trim: true,
+            default: "",
+        },
+        submittedAt: {
+            type: Date,
+            default: null,
+        },
+        revisionFeedback: {
+            type: String,
+            trim: true,
+            default: null,
+        },
+        revisionRequestedAt: {
+            type: Date,
+            default: null,
+        },
+        approvedAt: {
+            type: Date,
+            default: null,
+        },
+    },
+    { timestamps: true }
+);
+
 const collaborationSchema = new mongoose.Schema(
     {
         campaignId: {
@@ -26,6 +80,10 @@ const collaborationSchema = new mongoose.Schema(
             type: String,
             enum: ["active", "completed", "cancelled"],
             default: "active",
+        },
+        deliverables: {
+            type: [deliverableSchema],
+            default: [],
         },
     },
     { timestamps: true }

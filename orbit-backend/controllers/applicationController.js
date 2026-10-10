@@ -438,12 +438,25 @@ const acceptApplication = async (req, res) => {
         let collaboration = await Collaboration.findOne({ applicationId: application._id });
 
         if (!collaboration) {
+            let initialDeliverables = [];
+            if (campaign.deliverables && Array.isArray(campaign.deliverables) && campaign.deliverables.length > 0) {
+                initialDeliverables = campaign.deliverables
+                    .filter((d) => typeof d === "string" && d.trim().length > 0)
+                    .map((item) => ({
+                        title: item.trim(),
+                        description: "",
+                        status: "pending",
+                        dueDate: campaign.endDate || null,
+                    }));
+            }
+
             collaboration = await Collaboration.create({
                 campaignId: campaign._id,
                 applicationId: application._id,
                 brandId: campaign.brandId,
                 creatorId: application.creatorId,
                 status: "active",
+                deliverables: initialDeliverables,
             });
         }
 
