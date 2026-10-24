@@ -27,13 +27,15 @@ function createTestApp() {
 /**
  * Helper to run create-admin CLI as a child process with piped stdin
  */
+let activeMongoUri = process.env.MONGO_URI;
+
 function runCreateAdminCLI(inputs) {
     return new Promise((resolve) => {
         const scriptPath = path.join(__dirname, "scripts/createAdmin.js");
         const proc = spawn("node", [scriptPath], {
             cwd: __dirname,
             stdio: ["pipe", "pipe", "pipe"],
-            env: { ...process.env },
+            env: { ...process.env, MONGO_URI: activeMongoUri },
         });
 
         let stdout = "";
@@ -68,8 +70,9 @@ async function runPhase4B2Tests() {
         await mongoose.connect(process.env.MONGO_URI, { dbName: "Orbit", serverSelectionTimeoutMS: 5000 });
         connectedTo = "MongoDB Atlas Live Cluster";
     } catch {
-        await mongoose.connect("mongodb://127.0.0.1:27017/Orbit_Phase4B2_Test", { serverSelectionTimeoutMS: 5000 });
-        connectedTo = "Local MongoDB (127.0.0.1:27017/Orbit_Phase4B2_Test)";
+        activeMongoUri = "mongodb://127.0.0.1:27017";
+        await mongoose.connect(activeMongoUri, { dbName: "Orbit", serverSelectionTimeoutMS: 5000 });
+        connectedTo = "Local MongoDB (127.0.0.1:27017/Orbit)";
     }
     console.log(`Connected to: ${connectedTo}\n`);
 
