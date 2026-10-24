@@ -13,6 +13,8 @@ const collaborationRoutes = require("./routes/collaborationRoutes");
 const portfolioRoutes = require("./routes/portfolioRoutes");
 const verificationRoutes = require("./routes/verificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const contractRoutes = require("./routes/contractRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 dotenv.config();
 
 if (!process.env.JWT_SECRET) {
@@ -26,7 +28,11 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    },
+}));
 
 app.use((req, res, next) => {
     console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
@@ -42,6 +48,8 @@ app.use("/api/conversations", conversationRoutes);
 app.use("/api/campaigns", campaignRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/collaborations", collaborationRoutes);
+app.use("/api/contracts", contractRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/verification", verificationRoutes);
 app.use("/api/admin", adminRoutes);
