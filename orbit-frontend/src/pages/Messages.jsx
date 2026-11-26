@@ -10,7 +10,10 @@ import {
   Check,
   CheckCheck,
   Loader2,
+  Flag,
 } from "lucide-react";
+import { ReportModal } from "@/components/moderation/ReportModal";
+import { BlockButton } from "@/components/moderation/BlockButton";
 
 export default function Messages() {
   const { conversationId } = useParams();
@@ -41,6 +44,7 @@ export default function Messages() {
   const [inputText, setInputText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState(null);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   const messagesEndRef = useRef(null);
   const isPollingRef = useRef(false);
@@ -394,7 +398,32 @@ export default function Messages() {
                   </div>
                 </div>
               </div>
+
+              {/* Moderation actions */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setReportModalOpen(true)}
+                  className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-zinc-400 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                  title="Report user"
+                >
+                  <Flag className="size-3.5" />
+                </button>
+                <BlockButton
+                  targetUserId={selectedConversation.otherParticipant?._id}
+                  targetUserName={selectedConversation.otherParticipant?.name}
+                  size="sm"
+                />
+              </div>
             </div>
+
+            <ReportModal
+              isOpen={reportModalOpen}
+              onClose={() => setReportModalOpen(false)}
+              reportedUserId={selectedConversation.otherParticipant?._id}
+              reportedUserName={selectedConversation.otherParticipant?.name}
+              targetType="conversation"
+              targetId={selectedConversation._id}
+            />
 
             {/* Messages Thread */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">

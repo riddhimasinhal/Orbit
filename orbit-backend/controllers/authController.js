@@ -111,6 +111,13 @@ const login = async (req, res) => {
             });
         }
 
+        if (user.status === "suspended") {
+            return res.status(403).json({
+                message: "Your account has been suspended. Reason: " + (user.suspendedReason || "Violation of community guidelines"),
+                isSuspended: true,
+            });
+        }
+
         if (!process.env.JWT_SECRET) {
             throw new Error("JWT_SECRET environment variable is not defined");
         }

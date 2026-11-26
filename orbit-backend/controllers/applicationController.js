@@ -5,6 +5,7 @@ const Collaboration = require("../models/Collaboration");
 const CreatorProfile = require("../models/CreatorProfile");
 const BrandProfile = require("../models/BrandProfile");
 const User = require("../models/User");
+const { createNotification } = require("../services/notificationService");
 
 /**
  * POST /api/campaigns/:campaignId/applications
@@ -80,6 +81,17 @@ const applyToCampaign = async (req, res) => {
             pitch: pitch.trim(),
             proposedBudget: budget,
             status: "pending",
+        });
+
+        createNotification({
+            recipient: campaign.brandId,
+            sender: creatorId,
+            type: "campaign_application",
+            title: "New Campaign Application",
+            message: `A creator applied to your campaign "${campaign.title}".`,
+            relatedEntity: application._id,
+            relatedEntityType: "Application",
+            link: `/campaigns/${campaign._id}`,
         });
 
         res.status(201).json({
@@ -463,6 +475,17 @@ const acceptApplication = async (req, res) => {
         application.status = "accepted";
         await application.save();
 
+        createNotification({
+            recipient: application.creatorId,
+            sender: req.user.userId,
+            type: "application_status",
+            title: "Application Accepted!",
+            message: `Your application for "${campaign.title}" was accepted!`,
+            relatedEntity: application._id,
+            relatedEntityType: "Application",
+            link: "/collaborations",
+        });
+
         res.status(200).json({
             message: "Application accepted and collaboration created",
             application,
@@ -529,6 +552,17 @@ const rejectApplication = async (req, res) => {
 
         application.status = "rejected";
         await application.save();
+
+        createNotification({
+            recipient: application.creatorId,
+            sender: req.user.userId,
+            type: "application_status",
+            title: "Application Update",
+            message: `Your application for "${campaign.title}" was not selected.`,
+            relatedEntity: application._id,
+            relatedEntityType: "Application",
+            link: "/applications",
+        });
 
         res.status(200).json({
             message: "Application rejected successfully",

@@ -3,6 +3,8 @@ const Connection = require("../models/Connection")
 const User = require("../models/User")
 const CreatorProfile = require("../models/CreatorProfile")
 const BrandProfile = require("../models/BrandProfile")
+const { isBlocked } = require("../services/blockService")
+const { createNotification } = require("../services/notificationService")
 
 const sendRequest = async (req, res) => {
     try {
@@ -32,6 +34,10 @@ const sendRequest = async (req, res) => {
             return res.status(400).json({ message: "Connection requests can only be sent between a creator and a brand" })
         }
 
+        if (await isBlocked(senderId, receiverId)) {
+            return res.status(403).json({ message: "Cannot send connection request to this user" });
+        }
+
         // check if already sent
         const existing = await Connection.findOne({
             senderId,
@@ -58,6 +64,18 @@ const sendRequest = async (req, res) => {
         })
 
         console.log("Connection request sent:", connection._id)
+
+        createNotification({
+            recipient: receiverId,
+            sender: senderId,
+            type: "connection_request",
+            title: "New Connection Request",
+            message: `${senderUser.name || "A user"} sent you a connection request.`,
+            relatedEntity: connection._id,
+            relatedEntityType: "Connection",
+            link: "/requests",
+        });
+
         res.status(201).json({ message: "Request sent", connection })
     }
     catch (error) {
@@ -224,6 +242,30 @@ const updateRequest = async (req, res) => {
 
         connection.status = status
         await connection.save()
+
+        if (status === "accepted") {
+            createNotification({
+                recipient: connection.senderId,
+                sender: userId,
+                type: "connection_accepted",
+                title: "Connection Request Accepted",
+                message: "Your connection request was accepted.",
+                relatedEntity: connection._id,
+                relatedEntityType: "Connection",
+                link: "/requests",
+            });
+        } else if (status === "declined") {
+            createNotification({
+                recipient: connection.senderId,
+                sender: userId,
+                type: "connection_declined",
+                title: "Connection Request Declined",
+                message: "Your connection request was declined.",
+                relatedEntity: connection._id,
+                relatedEntityType: "Connection",
+                link: "/requests",
+            });
+        }
 
         console.log("Request updated:", id, status)
         res.status(200).json({ message: "Request " + status, connection })

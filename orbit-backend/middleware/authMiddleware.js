@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
     try {
         const rawToken = req.header("Authorization");
         if (!rawToken) {
@@ -16,13 +17,29 @@ const authMiddleware = (req, res, next) => {
             });
         }
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Verify active status in database
+        const user = await User.findById(decoded.userId).select("status suspendedReason role onBoardingCompleted");
+        if (!user) {
+            return res.status(401).json({
+                message: "User no longer exists",
+            });
+        }
+
+        if (user.status === "suspended") {
+            return res.status(403).json({
+                message: "Your account has been suspended. Reason: " + (user.suspendedReason || "Violation of community guidelines"),
+                isSuspended: true,
+            });
+        }
+
         req.user = decoded;
         next();
-    }
-    catch (error) {
+    } catch (error) {
         res.status(401).json({
             message: "Invalid or expired token",
         });
     }
-}
+};
+
 module.exports = authMiddleware;

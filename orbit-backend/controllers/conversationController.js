@@ -5,6 +5,8 @@ const Connection = require("../models/Connection");
 const User = require("../models/User");
 const CreatorProfile = require("../models/CreatorProfile");
 const BrandProfile = require("../models/BrandProfile");
+const { isBlocked } = require("../services/blockService");
+const { createNotification } = require("../services/notificationService");
 
 /**
  * GET /api/conversations
@@ -143,6 +145,10 @@ const createOrGetConversation = async (req, res) => {
             return res.status(403).json({
                 message: "Conversations are only allowed between accepted connections",
             });
+        }
+
+        if (await isBlocked(userId, recipientId)) {
+            return res.status(403).json({ message: "Cannot message this user" });
         }
 
         // Canonical sorted participants array for uniqueness
@@ -352,6 +358,10 @@ const sendMessage = async (req, res) => {
             });
         }
 
+        if (await isBlocked(userId, otherParticipantId)) {
+            return res.status(403).json({ message: "Cannot send message to this user" });
+        }
+
         // Always enforce req.user.userId as senderId (ignore any client-provided senderId)
         const message = await Message.create({
             conversationId,
@@ -364,6 +374,17 @@ const sendMessage = async (req, res) => {
         conversation.lastMessageAt = message.createdAt;
         conversation.lastSenderId = userId;
         await conversation.save();
+
+        createNotification({
+            recipient: otherParticipantId,
+            sender: userId,
+            type: "new_message",
+            title: "New Message",
+            message: content.trim().length > 60 ? content.trim().slice(0, 57) + "..." : content.trim(),
+            relatedEntity: conversation._id,
+            relatedEntityType: "Conversation",
+            link: "/messages",
+        });
 
         res.status(201).json({ message });
     } catch (error) {

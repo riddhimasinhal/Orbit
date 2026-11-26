@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom"
 import { SearchForm } from "@/components/search-form"
+import { NotificationBell } from "@/components/notifications/NotificationBell"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -27,9 +28,11 @@ export function SiteHeader() {
   const location = useLocation()
 
   const isBrand = location.pathname.startsWith("/brand")
-  const homeUrl = isBrand ? "/brand/dashboard" : "/creator/dashboard"
-  const roleLabel = isBrand ? "Brand" : "Creator"
-  const pageTitle = pageTitles[location.pathname] ?? "Dashboard"
+  const isAdmin = location.pathname.startsWith("/admin")
+  const role = isAdmin ? "admin" : isBrand ? "brand" : "creator"
+  const homeUrl = isAdmin ? "/admin/verifications" : isBrand ? "/brand/dashboard" : "/creator/dashboard"
+  const roleLabel = isAdmin ? "Admin" : isBrand ? "Brand" : "Creator"
+  const pageTitle = pageTitles[location.pathname] ?? (isAdmin ? "Admin Portal" : "Dashboard")
 
   return (
     <header
@@ -54,7 +57,10 @@ export function SiteHeader() {
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <SearchForm className="w-full sm:ml-auto sm:w-auto" />
+        <div className="flex items-center gap-2 ml-auto">
+          <SearchForm className="w-full sm:w-auto" />
+          <NotificationBell role={role} />
+        </div>
       </div>
     </header>
   );

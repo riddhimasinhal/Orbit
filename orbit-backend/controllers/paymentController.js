@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const Payment = require("../models/Payment");
 const Contract = require("../models/Contract");
 const Collaboration = require("../models/Collaboration");
+const { createNotification } = require("../services/notificationService");
 
 let RazorpayInstance = null;
 function getRazorpay() {
@@ -186,6 +187,17 @@ const verifyPayment = async (req, res) => {
         payment.errorMessage = null;
 
         await payment.save();
+
+        createNotification({
+            recipient: payment.recipientId,
+            sender: payment.payerId,
+            type: "payment_completed",
+            title: "Payment Received",
+            message: `You received a payment of ${payment.currency} ${payment.amount}.`,
+            relatedEntity: payment._id,
+            relatedEntityType: "Payment",
+            link: `/collaborations/${payment.collaborationId}`,
+        });
 
         return res.status(200).json({
             success: true,

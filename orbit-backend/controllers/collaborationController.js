@@ -4,6 +4,7 @@ const Campaign = require("../models/Campaign");
 const Application = require("../models/Application");
 const User = require("../models/User");
 const Connection = require("../models/Connection");
+const { createNotification } = require("../services/notificationService");
 
 /**
  * Helper to compute progress metrics and enrich deliverables with isOverdue
@@ -489,6 +490,17 @@ const submitDeliverable = async (req, res) => {
         await collaboration.save();
         const { progress } = computeDeliverablesProgress(collaboration.deliverables);
 
+        createNotification({
+            recipient: collaboration.brandId,
+            sender: userId,
+            type: "deliverable_submitted",
+            title: "Deliverable Submitted",
+            message: `Work submitted for deliverable: "${deliverable.title}"`,
+            relatedEntity: collaboration._id,
+            relatedEntityType: "Collaboration",
+            link: `/collaborations/${collaboration._id}`,
+        });
+
         return res.status(200).json({
             success: true,
             message: "Deliverable submitted successfully",
@@ -550,6 +562,17 @@ const approveDeliverable = async (req, res) => {
 
         await collaboration.save();
         const { progress } = computeDeliverablesProgress(collaboration.deliverables);
+
+        createNotification({
+            recipient: collaboration.creatorId,
+            sender: userId,
+            type: "deliverable_approved",
+            title: "Deliverable Approved!",
+            message: `Your deliverable "${deliverable.title}" has been approved!`,
+            relatedEntity: collaboration._id,
+            relatedEntityType: "Collaboration",
+            link: `/collaborations/${collaboration._id}`,
+        });
 
         return res.status(200).json({
             success: true,
@@ -614,6 +637,17 @@ const requestDeliverableRevision = async (req, res) => {
 
         await collaboration.save();
         const { progress } = computeDeliverablesProgress(collaboration.deliverables);
+
+        createNotification({
+            recipient: collaboration.creatorId,
+            sender: userId,
+            type: "deliverable_revision_requested",
+            title: "Revision Requested",
+            message: `Revision requested on "${deliverable.title}": ${feedbackText.trim().slice(0, 60)}...`,
+            relatedEntity: collaboration._id,
+            relatedEntityType: "Collaboration",
+            link: `/collaborations/${collaboration._id}`,
+        });
 
         return res.status(200).json({
             success: true,
