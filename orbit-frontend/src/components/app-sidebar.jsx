@@ -26,6 +26,12 @@ import {
   HandshakeIcon,
   FolderOpenIcon,
   ShieldCheckIcon,
+  TrendingUpIcon,
+  BellIcon,
+  BanIcon,
+  FileWarningIcon,
+  UsersIcon,
+  HistoryIcon,
 } from "lucide-react";
 
 const sidebarConfig = {
@@ -52,6 +58,11 @@ const sidebarConfig = {
         title: "Portfolio",
         url: "/creator/portfolio",
         icon: <FolderOpenIcon />,
+      },
+      {
+        title: "Analytics",
+        url: "/creator/analytics",
+        icon: <TrendingUpIcon />,
       },
       {
         title: "Browse Brands",
@@ -82,6 +93,16 @@ const sidebarConfig = {
         title: "Messages",
         url: "/creator/messages",
         icon: <MessageSquareIcon />,
+      },
+      {
+        title: "Notifications",
+        url: "/creator/notifications",
+        icon: <BellIcon />,
+      },
+      {
+        title: "Blocked Users",
+        url: "/creator/blocked-users",
+        icon: <BanIcon />,
       },
       {
         title: "Account Settings",
@@ -125,6 +146,11 @@ const sidebarConfig = {
         icon: <HandshakeIcon />,
       },
       {
+        title: "Analytics",
+        url: "/brand/analytics",
+        icon: <TrendingUpIcon />,
+      },
+      {
         title: "Requests",
         url: "/brand/requests",
         icon: <InboxIcon />,
@@ -133,6 +159,16 @@ const sidebarConfig = {
         title: "Messages",
         url: "/brand/messages",
         icon: <MessageSquareIcon />,
+      },
+      {
+        title: "Notifications",
+        url: "/brand/notifications",
+        icon: <BellIcon />,
+      },
+      {
+        title: "Blocked Users",
+        url: "/brand/blocked-users",
+        icon: <BanIcon />,
       },
       {
         title: "Account Settings",
@@ -154,6 +190,26 @@ const sidebarConfig = {
         title: "Verification Requests",
         url: "/admin/verifications",
         icon: <ShieldCheckIcon />,
+      },
+      {
+        title: "Platform Analytics",
+        url: "/admin/analytics",
+        icon: <TrendingUpIcon />,
+      },
+      {
+        title: "Content Reports",
+        url: "/admin/reports",
+        icon: <FileWarningIcon />,
+      },
+      {
+        title: "User Management",
+        url: "/admin/users",
+        icon: <UsersIcon />,
+      },
+      {
+        title: "Audit Logs",
+        url: "/admin/audit-logs",
+        icon: <HistoryIcon />,
       },
     ],
   },

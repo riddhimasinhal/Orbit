@@ -35,6 +35,14 @@ import CollaborationWorkspace from "./pages/collaborations/CollaborationWorkspac
 import CreatorPortfolio from "./pages/portfolio/CreatorPortfolio"
 import AdminLayout from "./layouts/AdminLayout"
 import AdminVerifications from "./pages/admin/AdminVerifications"
+import NotificationsPage from "./pages/notifications/NotificationsPage"
+import BlockedUsers from "./pages/moderation/BlockedUsers"
+import CreatorAnalytics from "./pages/analytics/CreatorAnalytics"
+import BrandAnalytics from "./pages/analytics/BrandAnalytics"
+import AdminAnalytics from "./pages/admin/AdminAnalytics"
+import AdminReports from "./pages/admin/AdminReports"
+import AdminUsers from "./pages/admin/AdminUsers"
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs"
 
 function App() {
   return (
@@ -76,6 +84,9 @@ function App() {
           <Route path="collaborations/:collaborationId" element={<CollaborationWorkspace />} />
           <Route path="brand/:id" element={<BrandDetail />} />
           <Route path="requests" element={<Requests />} />
+          <Route path="analytics" element={<CreatorAnalytics />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="blocked-users" element={<BlockedUsers />} />
           <Route path="messages" element={<Messages />} />
           <Route path="messages/:conversationId" element={<Messages />} />
         </Route>
@@ -100,6 +111,9 @@ function App() {
           <Route path="collaborations/:collaborationId" element={<CollaborationWorkspace />} />
           <Route path="creator/:id" element={<CreatorDetail />} />
           <Route path="requests" element={<Requests />} />
+          <Route path="analytics" element={<BrandAnalytics />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="blocked-users" element={<BlockedUsers />} />
           <Route path="messages" element={<Messages />} />
           <Route path="messages/:conversationId" element={<Messages />} />
         </Route>
@@ -114,6 +128,10 @@ function App() {
         >
           <Route index element={<Navigate to="verifications" replace />} />
           <Route path="verifications" element={<AdminVerifications />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="reports" element={<AdminReports />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="audit-logs" element={<AdminAuditLogs />} />
           <Route path="creator/:id" element={<CreatorDetail />} />
         </Route>
 

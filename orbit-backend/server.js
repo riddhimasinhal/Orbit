@@ -1,7 +1,9 @@
+
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
+
 const authRoutes = require("./routes/authRoutes");
 const creatorRoutes = require("./routes/creatorRoutes");
 const brandRoutes = require("./routes/brandRoutes");
@@ -15,14 +17,19 @@ const verificationRoutes = require("./routes/verificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const contractRoutes = require("./routes/contractRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+
+// Phase 6–7 routes
+const analyticsRoutes = require("./routes/analyticsRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const reportRoutes = require("./routes/reportRoutes");
+const blockRoutes = require("./routes/blockRoutes");
+
 dotenv.config();
 
 if (!process.env.JWT_SECRET) {
     console.error("FATAL ERROR: JWT_SECRET environment variable is not defined.");
     process.exit(1);
 }
-
-
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -39,6 +46,7 @@ app.use((req, res, next) => {
     next();
 });
 
+// Existing Phase 0–5 routes
 app.use("/api/auth", authRoutes);
 app.use("/api/creator", creatorRoutes);
 app.use("/api/creators", creatorRoutes);
@@ -54,9 +62,15 @@ app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/verification", verificationRoutes);
 app.use("/api/admin", adminRoutes);
 
-app.get('/', (req, res) => {
+// Phase 6–7 routes
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/blocks", blockRoutes);
+
+app.get("/", (req, res) => {
     res.send("API running");
-})
+});
 
 // Central error handling middleware
 app.use((err, req, res, next) => {
@@ -70,7 +84,9 @@ app.use((err, req, res, next) => {
         return res.status(400).json({ message: "Duplicate resource already exists" });
     }
     console.error("Unhandled error:", err.message);
-    res.status(err.status || 500).json({ message: err.message || "Internal server error" });
+    res.status(err.status || 500).json({
+        message: err.message || "Internal server error"
+    });
 });
 
 const startServer = async () => {
@@ -87,4 +103,3 @@ const startServer = async () => {
 };
 
 startServer();
-

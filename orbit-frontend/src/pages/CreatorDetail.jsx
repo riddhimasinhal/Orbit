@@ -19,8 +19,11 @@ import {
   ExternalLink,
   Sparkles,
   CheckCircle2,
+  Flag,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ReportModal } from "@/components/moderation/ReportModal";
+import { BlockButton } from "@/components/moderation/BlockButton";
 
 const formatNum = (num) => {
   if (!num) return "—";
@@ -41,6 +44,7 @@ const CreatorDetail = () => {
   const [isSender, setIsSender] = useState(false);
   const [sending, setSending] = useState(false);
   const [startingChat, setStartingChat] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -214,7 +218,8 @@ const CreatorDetail = () => {
         )}
 
         {/* connect button */}
-        <div className="mt-4 pt-3">
+        <div className="mt-4 pt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/5">
+          <div className="flex items-center gap-3">
           {connectionStatus === null && (
             <button
               onClick={handleConnect}
@@ -251,7 +256,30 @@ const CreatorDetail = () => {
               <X className="size-4" /> Request Declined
             </span>
           )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setReportModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-400 hover:text-red-400 hover:border-red-500/30 transition-colors"
+            >
+              <Flag className="size-3.5" /> Report
+            </button>
+            <BlockButton
+              targetUserId={creator?.userId?._id || creator?.userId}
+              targetUserName={creator?.fullName}
+            />
+          </div>
         </div>
+
+        <ReportModal
+          isOpen={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+          reportedUserId={creator?.userId?._id || creator?.userId}
+          reportedUserName={creator?.fullName}
+          targetType="creator_profile"
+          targetId={creator?._id}
+        />
       </div>
 
       {/* audience stats */}

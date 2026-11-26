@@ -6,9 +6,13 @@ const {
     getPendingVerifications,
     approveVerification,
     rejectVerification,
+    getUsers,
+    suspendUser,
+    reactivateUser,
+    getModerationAuditLogs,
 } = require("../controllers/adminController");
 
-// Admin-only verification routes
+// Verification management
 router.get(
     "/verifications",
     authMiddleware,
@@ -28,6 +32,36 @@ router.patch(
     authMiddleware,
     requireRole("admin"),
     rejectVerification
+);
+
+// User management & suspension
+router.get(
+    "/users",
+    authMiddleware,
+    requireRole("admin"),
+    getUsers
+);
+
+router.patch(
+    "/users/:userId/suspend",
+    authMiddleware,
+    requireRole("admin"),
+    suspendUser
+);
+
+router.patch(
+    "/users/:userId/reactivate",
+    authMiddleware,
+    requireRole("admin"),
+    reactivateUser
+);
+
+// Moderation audit logs
+router.get(
+    "/moderation-logs",
+    authMiddleware,
+    requireRole("admin"),
+    getModerationAuditLogs
 );
 
 module.exports = router;
